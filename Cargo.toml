@@ -1,0 +1,14 @@
+[package]
+name = "PostQuantumCryptography"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "cryptym"
+path = "./src/cryptum/mod.rs"
+
+[dependencies]
+hex-literal = "0.3.4"
+rand = "0.8.5"
+sha3 = "0.10.6"
