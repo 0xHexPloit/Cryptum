@@ -1,4 +1,6 @@
+use std::mem::align_of_val;
 use rand::{RngCore, thread_rng};
+use crate::helper::byte_to_bits;
 
 pub struct ByteArray {
     values: Vec<u8>
@@ -26,6 +28,17 @@ impl ByteArray {
         Self {values: data}
     }
 
+    pub fn to_bits(&self) -> Vec<u8> {
+        let mut output = vec![];
+
+        for byte in self.get_bytes() {
+            let mut bits = [0u8; 8];
+            byte_to_bits(*byte, &mut bits);
+            output.extend_from_slice(&bits);
+        }
+        output
+    }
+
 }
 
 impl From<&[u8]> for ByteArray {
@@ -40,6 +53,14 @@ impl From<u8> for ByteArray {
     fn from(value: u8) -> Self {
         Self {
             values: vec![value]
+        }
+    }
+}
+
+impl From<Vec<u8>> for ByteArray {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            values: value
         }
     }
 }
@@ -79,5 +100,12 @@ mod tests {
 
         assert_eq!(concat_arr.get_bytes().len(), expected_size);
         assert_eq!(concat_arr.get_bytes(), [1, 2, 4])
+    }
+
+    #[test]
+    fn test_to_bits() {
+        let data = ByteArray::from([2, 3].as_slice());
+        let bits = data.to_bits();
+        assert_eq!(bits, [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1])
     }
 }

@@ -14,9 +14,9 @@ impl <'a>Polynomial<'a> {
         if coefficients.len() > ring.get_order() {
             panic!("The polynomial does not belong to the ring");
         }
-
+        let reduced_coefficients = coefficients.iter().map(|val| val % ring.get_characteristic()).collect();
         Self {
-            coefficients: coefficients.to_vec(),
+            coefficients: reduced_coefficients,
             degree: if coefficients.iter().sum::<usize>() == 0 {
                 Some(coefficients.len() as usize)
             }else  {

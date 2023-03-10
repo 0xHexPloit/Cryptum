@@ -1,5 +1,6 @@
 use std::io::Read;
-use sha3::{Sha3_512, Shake128};
+use std::ptr::hash;
+use sha3::{Sha3_512, Shake128, Shake256};
 use sha3::digest::{Update, ExtendableOutput, FixedOutput};
 
 pub fn sha_512(data: &[u8]) -> Vec<u8> {
@@ -17,11 +18,20 @@ pub fn shake_128(data: &[u8], length: usize) -> Vec<u8> {
     buffer
 }
 
+pub fn shake_256(data: &[u8], length: usize) -> Vec<u8> {
+    let mut buffer = vec![0u8; length];
+    let mut hasher = Shake256::default();
+    hasher.update(data);
+    let mut xof_reader = hasher.finalize_xof();
+    xof_reader.read(&mut buffer).expect("Xof reader should give some bytes");
+    buffer
+}
+
 
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
-    use crate::hash::{sha_512, shake_128};
+    use crate::hash::{sha_512, shake_128, shake_256};
 
     #[test]
     fn test_sha_512() {
@@ -38,5 +48,15 @@ mod tests {
 
         assert_eq!(output.len(), expected_output_size);
         assert_eq!(output, hex!("18d71c6c1c2f8edac4e4"))
+    }
+
+    #[test]
+    fn test_shake_256() {
+        let data = b"telecom".as_slice();
+        let expected_size = 10;
+        let output = shake_256(data, expected_size);
+
+        assert_eq!(output.len(), expected_size);
+        assert_eq!(output, hex!("20a3a9e642efb29ceb5b"))
     }
 }
