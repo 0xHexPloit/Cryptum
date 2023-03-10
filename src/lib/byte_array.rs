@@ -15,12 +15,31 @@ impl ByteArray {
     pub fn get_bytes(&self) -> &[u8] {
         self.values.as_slice()
     }
+
+    pub fn concat(items: &[&Self]) -> Self {
+        let data_length = items.iter().map(|arr| arr.get_bytes().len()).sum();
+        let mut data = Vec::with_capacity(data_length);
+
+        for item in items {
+            data.extend_from_slice(&item.get_bytes())
+        }
+        Self {values: data}
+    }
+
 }
 
 impl From<&[u8]> for ByteArray {
     fn from(value: &[u8]) -> Self {
         Self {
             values: value.to_vec()
+        }
+    }
+}
+
+impl From<u8> for ByteArray {
+    fn from(value: u8) -> Self {
+        Self {
+            values: vec![value]
         }
     }
 }
@@ -49,5 +68,16 @@ mod tests {
         let data = [1, 2].as_slice();
         let bytes_arr = ByteArray::from(data);
         assert_eq!(data, bytes_arr.get_bytes())
+    }
+
+    #[test]
+    fn test_concat() {
+        let expected_size = 3;
+        let byte_arr_1 = ByteArray::from([1u8, 2].as_slice());
+        let byte_arr_2 = ByteArray::from(4);
+        let concat_arr = ByteArray::concat(&[&byte_arr_1, &byte_arr_2]);
+
+        assert_eq!(concat_arr.get_bytes().len(), expected_size);
+        assert_eq!(concat_arr.get_bytes(), [1, 2, 4])
     }
 }

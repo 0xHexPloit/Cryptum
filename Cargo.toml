@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "cryptym"
-path = "./src/cryptum/mod.rs"
+path = "src/lib/mod.rs"
 
 [dependencies]
 hex-literal = "0.3.4"

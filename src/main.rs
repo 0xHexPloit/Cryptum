@@ -1,5 +1,5 @@
-mod cryptum;
+
 
 fn main() {
-    println!("Hello, world!");
+    println!("{}", 10/3);
 }
