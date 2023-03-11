@@ -1,0 +1,1 @@
+This project consists of a CLI program written in Rust that allows either encrypting or signing data using lattice-based cryptography. For the encryption part, the Kyber (article) algorithm has been used, the Kyber algorithm (article) has been used. For the signature algorithm, we opted for the Dilithium algorithm (article).
