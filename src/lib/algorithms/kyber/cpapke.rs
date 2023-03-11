@@ -5,6 +5,7 @@ use crate::hash::{sha_512, shake_128, shake_256};
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::matrix::MatrixRQ;
+use crate::algorithms::kyber::ntt::{ntt, ntt_matrix};
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
 pub struct KyberCPAPKE<const V: usize> {
@@ -178,7 +179,8 @@ impl <const N: usize> KyberCPAPKE<N> {
             }
 
             let diff: i32 = a as i32 - b as i32;
-            coefficients[i] = diff.into();
+
+            coefficients[i] = GF3329::from(diff);
 
         }
 
@@ -207,11 +209,12 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         // // Generating s and e
         let mut upper_n = 0;
-        let s = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
-        let e = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
+        let mut  s = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
+        let mut e = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
 
-
-
+        // Applying NTT transformation to s and e
+        ntt_matrix(&mut s);
+        ntt_matrix(&mut e);
 
         (ByteArray::random(2), ByteArray::random(2))
     }

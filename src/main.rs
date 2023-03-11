@@ -1,5 +1,5 @@
-
+use bit_reverse::LookupReverse;
 
 fn main() {
-    println!("{}", 10/3);
+   println!("{:?}", LookupReverse::swap_bits(0x02 as u8));
 }

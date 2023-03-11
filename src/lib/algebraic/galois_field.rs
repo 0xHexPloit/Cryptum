@@ -2,7 +2,6 @@
 pub trait GaloisField {
     fn zero() -> Self;
     fn add(&self, other: &Self) -> Self;
-    fn sub(&self, other: &Self) -> Self;
     fn mul(&self, other: &Self) -> Self;
     fn value(&self) -> usize;
 }
@@ -13,14 +12,13 @@ pub struct GaloisFieldCore<const P: usize>(usize);
 
 impl <const P: usize>From<usize> for GaloisFieldCore<P> {
     fn from(value: usize) -> Self {
-        Self (value % P)
+        Self (value.rem_euclid(P))
     }
 }
 
 impl <const P: usize>From<i32> for GaloisFieldCore<P> {
     fn from(value: i32) -> Self {
-        let new_value = value % P as i32;
-        Self (new_value as usize)
+        Self (value.rem_euclid(P as i32) as usize)
     }
 }
 
@@ -44,19 +42,12 @@ impl <const P: usize>GaloisField for GaloisFieldCore<P> {
     }
 
     fn add(&self, other: &Self) -> Self {
-        ((self.0 + other.0) % P).into()
+        ((self.0 + other.0).rem_euclid(P)).into()
     }
 
-    fn sub(&self, other: &Self) -> Self {
-        let signed_value = self.0 as isize;
-        let other_signed_value = other.0 as isize;
-        let diff = signed_value - other_signed_value;
-        let value = (diff  % P as isize);
-        (value as usize).into()
-    }
 
     fn mul(&self, other: &Self) -> Self {
-        ((self.0 * other.0) % P).into()
+        ((self.0 * other.0).rem_euclid(P)).into()
     }
 
     fn value(&self) -> usize {

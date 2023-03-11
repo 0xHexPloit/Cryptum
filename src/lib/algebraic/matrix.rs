@@ -52,6 +52,20 @@ impl <P: RingElement> Matrix<P> {
     pub fn get_shape(&self) -> (u8, u8) {
         (self.number_rows, self.number_columns)
     }
+    pub fn set(&mut self, i: u8, j: u8, content: P) {
+        if i >= self.number_rows || j >= self.number_columns {
+            panic!("Invalid coordinates!");
+        }
+        let mut_matrix_content: &mut MatrixContent<P> = self.data.as_mut();
+        mut_matrix_content[i as usize][j as usize] = content;
+    }
+
+    pub fn get_element(&self, i: u8, j: u8) -> &P {
+        if i >= self.number_rows || j >= self.number_columns {
+            panic!("Invalid coordinates!");
+        }
+        &self.data[i as usize][j as usize]
+    }
 }
 
 #[cfg(test)]

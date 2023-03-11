@@ -2,6 +2,7 @@ use crate::algebraic::galois_field::GaloisField;
 
 pub trait RingElement {
     fn zero() -> Self;
+    fn is_zero(&self) -> bool;
 }
 
 #[derive(Debug)]
@@ -42,6 +43,9 @@ impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy
     pub fn degree(&self) -> Option<usize> {
         self.degree
     }
+    pub fn get_coeff(&self, degree: usize) -> Option<&C> {
+        self.coefficients.get(degree)
+    }
 }
 
 
@@ -49,6 +53,10 @@ impl <C, const N: usize> RingElement for Polynomial<C, N> where C: GaloisField +
     fn zero() -> Self {
         let coeff = [C::default(); N];
         coeff.into()
+    }
+
+    fn is_zero(&self) -> bool {
+        self.coefficients.iter().all(|coeff| coeff.value() == 0)
     }
 }
 
