@@ -1,5 +1,5 @@
 use rand::{RngCore, thread_rng};
-use crate::helper::byte_to_bits;
+use crate::helper::bytes::byte_to_bits;
 
 pub struct ByteArray {
     values: Vec<u8>

@@ -1,5 +1,4 @@
 use crate::algebraic::galois_field::GaloisField;
-use crate::algebraic::polynomial::Polynomial;
 use crate::byte_array::ByteArray;
 use crate::hash::{sha_512, shake_128, shake_256};
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};

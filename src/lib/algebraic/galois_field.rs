@@ -1,12 +1,13 @@
 
 pub trait GaloisField {
+    fn is_zero(&self) -> bool;
     fn zero() -> Self;
     fn add(&self, other: &Self) -> Self;
     fn mul(&self, other: &Self) -> Self;
     fn value(&self) -> usize;
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct GaloisFieldCore<const P: usize>(usize);
 
 
@@ -37,6 +38,10 @@ impl <const P: usize>Default for GaloisFieldCore<P> {
 
 
 impl <const P: usize>GaloisField for GaloisFieldCore<P> {
+    fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+
     fn zero() -> Self {
         0.into()
     }

@@ -52,8 +52,8 @@ pub fn ntt(poly: &PolyRQ) -> PolyRQ {
             let zeta_index = ((2 as usize * br7(i as u8) as usize + 1 as usize) * j).rem_euclid(KYBER_N_VALUE);
             let zeta: GF3329 = ZETAS_256.get(zeta_index).unwrap().clone().into();
 
-            let first_poly_coeff = poly.get_coeff(2 as usize * j).unwrap();
-            let second_poly_coeff = poly.get_coeff(2 as usize * j + 1 as usize).unwrap();
+            let first_poly_coeff = poly[2 as usize * j];
+            let second_poly_coeff = poly[2 as usize * j + 1 as usize];
 
             let first_coeff =  first_poly_coeff.mul(&zeta);
             let second_coeff = second_poly_coeff.mul(&zeta);
@@ -80,12 +80,30 @@ pub fn ntt_matrix(matrix: &mut MatrixRQ) {
 
 }
 
+pub fn ntt_basecase_multiplication(first_poly: &PolyRQ, second_poly: &PolyRQ) -> PolyRQ {
+    // Checking if one of the two polynomials (at least) is the zero polynomial as the result
+    // would be the zero polynomial
+    if first_poly.is_zero() || second_poly.is_zero() {
+        return PolyRQ::zero()
+    }
 
+    let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
 
-/// This function permits to compute the product of two polynomials belonging to the Ring R_q
-pub fn ntt_product(first_poly_hat: &PolyRQ, second_poly_hat: &PolyRQ) -> PolyRQ {
-    PolyRQ::zero()
+    for i in 0..(KYBER_N_VALUE - 1)/2 {
+        let f_poly = PolyRQ::from_degrees(
+            &[0, 1],
+            &[first_poly[2 * i], first_poly[2 * i + 1]]
+        );
+        let g_poly = PolyRQ::from_degrees(
+            &[0, 1],
+            &[second_poly[2 * i], second_poly[2 * i + 1]]
+        );
+
+    }
+
+    coefficients.into()
 }
+
 
 
 #[cfg(test)]

@@ -1,5 +1,10 @@
-use bit_reverse::LookupReverse;
+
 
 fn main() {
-   println!("{:?}", LookupReverse::swap_bits(0x02 as u8));
+   let arr_1 = [1, 2, 4];
+   let arr_2 = [1, 4, 7];
+
+   for (degree, coeff) in arr_1.iter().zip(arr_2.iter()) {
+
+   }
 }
