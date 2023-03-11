@@ -1,4 +1,3 @@
-use std::mem::align_of_val;
 use rand::{RngCore, thread_rng};
 use crate::helper::byte_to_bits;
 

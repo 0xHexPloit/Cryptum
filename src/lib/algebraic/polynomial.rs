@@ -1,40 +1,83 @@
-use crate::algebraic::ring::PolynomialRing;
+use crate::algebraic::galois_field::GaloisField;
 
-/// This structure represents an element of the ring  Zq[X]/(Xn+1)
-#[derive(Debug)]
-pub struct Polynomial<'a> {
-    coefficients: Vec<usize>,
-    degree: Option<usize>,
-    ring: &'a PolynomialRing
+pub trait RingElement {
+    fn zero() -> Self;
 }
 
-impl <'a>Polynomial<'a> {
-    pub fn new(coefficients: &[usize], ring: &'a PolynomialRing) -> Self {
-        // Checking that the length of coefficients is not greater than to n
-        if coefficients.len() > ring.get_order() {
-            panic!("The polynomial does not belong to the ring");
+#[derive(Debug)]
+pub struct Polynomial<C, const N: usize>
+where C: GaloisField + Default {
+    coefficients: [C; N],
+    degree: Option<usize>
+}
+
+impl <C, const N: usize> From<[C; N]> for Polynomial<C, N> where C: GaloisField + Default + Copy + Clone{
+    fn from(value: [C; N]) -> Self {
+        let mut degree = value.len() - 1;
+        for coeff in value.iter().rev() {
+            if coeff.value() == 0 && degree != 0 {
+                degree -= 1;
+            } else {
+                break;
+            }
         }
-        let reduced_coefficients = coefficients.iter().map(|val| val % ring.get_characteristic()).collect();
+
+        // In case degree is 0, we should check if we should create the zero polynomial
+        let degree =  if degree == 0 && value.get(0).unwrap().value() == 0 {
+            None
+        } else {
+            Some(degree)
+        };
+
         Self {
-            coefficients: reduced_coefficients,
-            degree: if coefficients.iter().sum::<usize>() == 0 {
-                Some(coefficients.len() as usize)
-            }else  {
-                None
-            },
-            ring
+            coefficients: value,
+            degree
         }
+
+
+    }
+}
+
+impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy + Clone {
+    pub fn degree(&self) -> Option<usize> {
+        self.degree
+    }
+}
+
+
+impl <C, const N: usize> RingElement for Polynomial<C, N> where C: GaloisField + Default + Copy + Clone {
+    fn zero() -> Self {
+        let coeff = [C::default(); N];
+        coeff.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::algebraic::galois_field::GaloisFieldCore;
+    use crate::algebraic::polynomial::Polynomial;
+
+    const RING_ORDER: usize = 2;
+    type GF7 = GaloisFieldCore<7>;
+    type Poly = Polynomial<GF7, RING_ORDER>;
+
+    #[test]
+    fn test_creating_zero_polynomial() {
+        let coeff = [
+            GF7::default();
+            RING_ORDER
+        ];
+        let poly = Poly::from(coeff);
+
+        assert_eq!(poly.degree, None)
     }
 
-    pub fn get_ring_ref(&self) -> &PolynomialRing {
-        self.ring
-    }
+    #[test]
+    fn test_creating_non_zero_polynomial() {
+        let mut coeff = [GF7::default(); RING_ORDER];
+        coeff[1] = 1.into();
+        let poly = Poly::from(coeff);
 
-    pub fn zero(ring: &'a PolynomialRing) -> Self {
-        Self {
-            coefficients: vec![0],
-            degree: None,
-            ring,
-        }
+        assert_eq!(poly.degree, Some(1))
     }
 }

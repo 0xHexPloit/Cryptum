@@ -1,5 +1,4 @@
 use std::io::Read;
-use std::ptr::hash;
 use sha3::{Sha3_512, Shake128, Shake256};
 use sha3::digest::{Update, ExtendableOutput, FixedOutput};
 

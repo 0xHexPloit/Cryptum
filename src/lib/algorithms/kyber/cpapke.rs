@@ -1,13 +1,13 @@
-use std::iter::Map;
-use crate::algebraic::matrix::PolynomialMatrix;
+use crate::algebraic::galois_field::GaloisField;
 use crate::algebraic::polynomial::Polynomial;
 use crate::byte_array::ByteArray;
 use crate::hash::{sha_512, shake_128, shake_256};
-use crate::algebraic::ring::PolynomialRing;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
+use crate::algorithms::kyber::galois_field::GF3329;
+use crate::algorithms::kyber::matrix::MatrixRQ;
+use crate::algorithms::kyber::polynomial::PolyRQ;
 
 pub struct KyberCPAPKE<const V: usize> {
-    ring: PolynomialRing,
     k: u8,
     eta_1: u8,
     eta_2: u8,
@@ -19,7 +19,6 @@ pub struct KyberCPAPKE<const V: usize> {
 impl KyberCPAPKE<512> {
     pub fn init() -> Self {
         Self {
-            ring: PolynomialRing::new(KYBER_N_VALUE, KYBER_Q_VALUE),
             k: 2,
             eta_1: 3,
             eta_2: 2,
@@ -32,7 +31,6 @@ impl KyberCPAPKE<512> {
 impl KyberCPAPKE<768> {
     pub fn init() -> Self {
         Self {
-            ring: PolynomialRing::new(KYBER_N_VALUE, KYBER_Q_VALUE),
             k: 3,
             eta_1: 2,
             eta_2: 2,
@@ -45,7 +43,6 @@ impl KyberCPAPKE<768> {
 impl KyberCPAPKE<1024> {
     pub fn init() -> Self {
         Self {
-            ring: PolynomialRing::new(KYBER_N_VALUE, KYBER_Q_VALUE),
             k: 4,
             eta_1: 2,
             eta_2: 2,
@@ -80,8 +77,45 @@ impl <const N: usize> KyberCPAPKE<N> {
         shake_128(concat.get_bytes(), KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE).into()
     }
 
+    /// This function corresponds to the Parse function mentioned in p.6 of the article.
+    ///
+    /// Input:
+    ///     bytes_stream: An array of bytes
+    /// Output:
+    ///     A Polynomial belonging to the Polynomial Ring R_q
+    fn parse(bytes_stream: ByteArray) -> PolyRQ {
+        let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
 
-    pub fn generate_matrix_from_seed(&self, seed: &ByteArray) -> PolynomialMatrix {
+        let mut i = 0;
+        let mut j = 0;
+
+        let bytes_arr = bytes_stream.get_bytes();
+
+        while j  < KYBER_N_VALUE {
+            let b_i = bytes_arr.get(i).unwrap().clone() as usize;
+            let b_i_plus_one = bytes_arr.get(i+1).unwrap().clone() as usize;
+            let b_i_plus_two = bytes_arr.get(i+2).unwrap().clone() as usize;
+
+            let d_1 = b_i + KYBER_N_VALUE * (b_i_plus_one % 16 as usize);
+            let d_2 = (b_i_plus_one / 16 as usize) + 16 as usize * b_i_plus_two;
+
+            if d_1 < KYBER_Q_VALUE {
+                coefficients[j] = d_1.into();
+                j += 1;
+            }
+
+            if d_2 < KYBER_Q_VALUE && j < KYBER_N_VALUE {
+                coefficients[j] = d_2.into();
+                j += 1;
+            }
+            i += 3;
+        }
+
+        coefficients.into()
+    }
+
+
+    pub fn generate_matrix_from_seed(&self, seed: &ByteArray) -> MatrixRQ {
         let mut matrix_data = vec![];
 
         for i in 0..self.k{
@@ -93,7 +127,7 @@ impl <const N: usize> KyberCPAPKE<N> {
                     j,
                     i
                 );
-                let poly = self.ring.parse(ByteArray::from(bytes_stream.get_bytes()));
+                let poly = Self::parse(bytes_stream);
                 row_data.push(poly);
             }
             matrix_data.push(row_data);
@@ -122,13 +156,13 @@ impl <const N: usize> KyberCPAPKE<N> {
 
     }
 
-    fn cbd_eta(&self, bytes_array: &ByteArray, eta: u8) -> Polynomial{
+    fn cbd_eta(&self, bytes_array: &ByteArray, eta: u8) -> PolyRQ{
         // Checking length of bytes array
         if bytes_array.get_bytes().len() != (64 * eta) as usize {
             panic!("bytes_array does not have the correct size");
         }
 
-        let mut coefficients: Vec<usize> = Vec::with_capacity(KYBER_N_VALUE);
+        let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
         let bits = bytes_array.to_bits();
 
         for i in 0..256 {
@@ -143,16 +177,15 @@ impl <const N: usize> KyberCPAPKE<N> {
                 b += bits[b_index] as usize;
             }
 
-            let coefficient: isize = (a as isize - b as isize);
+            let diff: i32 = a as i32 - b as i32;
+            coefficients[i] = diff.into();
 
-
-            coefficients.push(coefficient as usize % self.ring.get_characteristic());
         }
 
-        Polynomial::new(&coefficients, &self.ring)
+        coefficients.into()
     }
 
-    fn generate_random_vec(&self, sigma: &ByteArray, upper_n: &mut u8, eta: u8) -> PolynomialMatrix {
+    fn generate_random_vec(&self, sigma: &ByteArray, upper_n: &mut u8, eta: u8) -> MatrixRQ {
         let mut matrix_data = Vec::with_capacity(self.k as usize);
 
         for i in 0..self.k {
@@ -165,8 +198,6 @@ impl <const N: usize> KyberCPAPKE<N> {
         matrix_data.into()
     }
 
-
-
     pub fn keygen(&self) -> (ByteArray, ByteArray) {
         let d = ByteArray::random(KYBER_N_VALUE_IN_BYTES);
         let (rho, sigma) = self.g(d);
@@ -174,10 +205,11 @@ impl <const N: usize> KyberCPAPKE<N> {
         // Generating the A hat matrix
         let a_hat = self.generate_matrix_from_seed(&rho);
 
-        // Generating s and e
+        // // Generating s and e
         let mut upper_n = 0;
         let s = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
         let e = self.generate_random_vec(&sigma, &mut upper_n, self.eta_1);
+
 
 
 
@@ -211,7 +243,6 @@ mod tests {
         let seed = ByteArray::random(32);
         let kyber=  KyberCPAPKE512::init();
         let matrix = kyber.generate_matrix_from_seed(&seed);
-        println!("{:?}", matrix)
     }
 
     #[test]

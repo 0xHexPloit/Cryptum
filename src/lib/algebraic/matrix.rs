@@ -1,134 +1,112 @@
-use crate::algebraic::polynomial::Polynomial;
+use crate::algebraic::polynomial::RingElement;
 
-type MatrixData<'a> = Vec<Vec<Polynomial<'a>>>;
+type MatrixContent<P> = Vec<Vec<P>>;
 
-
-fn check_matrix_content(data: &MatrixData) {
-    // Checking that the matrix contains some rows
-    if data.len() == 0 {
-        panic!("The matrix should contain some rows");
+fn check_matrix_content<P: RingElement>(content: &MatrixContent<P>) {
+    // Checking that matrix contains some rows
+    if content.len() == 0 {
+        panic!("Matrix should content some rows")
     }
 
-    let columns_first_row = data.get(0).unwrap();
+    let columns_numbers: Vec<usize> = content.iter().map(|row| row.len()).collect();
+    let base_number = columns_numbers.get(0).unwrap();
 
-    // Checking that the matrix contains some columns
-    if columns_first_row.len() == 0 {
-        panic!("The matrix should contain some columns");
-    }
 
-    // Checking matrix consistency in terms of number of columns per row
-    if data.len() > 1 {
-        for i in 1..data.len() {
-            if columns_first_row.len() != data.get(i).unwrap().len() {
-                panic!("Different number of columns detected!")
-            }
+    // Checking that all numbers are the same
+    for i in 1..columns_numbers.len() {
+        if *base_number != *columns_numbers.get(i).unwrap() {
+            panic!("Some rows don't have the same number of columns")
         }
     }
 
-    // Checking that all the polynomials belong to the same ring
-    let base_ring_ref = columns_first_row.get(0).unwrap().get_ring_ref();
-    for i in 0..data.len() {
-        for j in 0..columns_first_row.len() {
-            let row = data.get(i).unwrap();
-            let current_poly = row.get(j).unwrap();
-
-            if base_ring_ref != current_poly.get_ring_ref() {
-                panic!("all the elements of the matrix should belong to the same ring");
-            }
-        }
+    // Checking that base_number is not equal to 0
+    if *base_number == 0 {
+        panic!("A row should contain at least one element")
     }
+
 }
-
 
 #[derive(Debug)]
-pub struct PolynomialMatrix<'a> {
-    data: MatrixData<'a>,
-    num_rows: u8,
-    num_columns: u8
+pub struct Matrix<P: RingElement> {
+    data: MatrixContent<P>,
+    number_rows: u8,
+    number_columns: u8
 }
 
-impl <'a>From<MatrixData<'a>> for PolynomialMatrix<'a> {
-    fn from(value: MatrixData<'a>) -> Self {
+impl <P: RingElement>From<MatrixContent<P>> for Matrix<P> {
+    fn from(value: MatrixContent<P>) -> Self {
         check_matrix_content(&value);
+        let number_rows = value.len() as u8;
+        let number_columns = value.get(0).unwrap().len() as u8;
 
-        let num_rows = value.len() as u8;
-        let num_columns = value.get(0).unwrap().len() as u8;
         Self {
             data: value,
-            num_rows,
-            num_columns
+            number_rows,
+            number_columns
         }
     }
 }
 
 
-impl <'a>PolynomialMatrix<'a> {
+impl <P: RingElement> Matrix<P> {
     pub fn get_shape(&self) -> (u8, u8) {
-        (self.num_rows, self.num_columns)
+        (self.number_rows, self.number_columns)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::algebraic::matrix::{MatrixData, PolynomialMatrix};
-    use crate::algebraic::polynomial::Polynomial;
-    use crate::algebraic::ring::PolynomialRing;
+    use crate::algebraic::galois_field::GaloisFieldCore;
+    use crate::algebraic::matrix::Matrix;
+    use crate::algebraic::polynomial::{Polynomial, RingElement};
+
+    type GF7 = GaloisFieldCore<7>;
+    type Poly7 = Polynomial<GF7, 2>;
 
     #[test]
     #[should_panic]
-    fn test_failed_matrix_creation_empty_rows() {
-        let data: MatrixData = vec![];
-        let _: PolynomialMatrix = data.into();
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_failed_matrix_creation_empty_columns() {
-        let data: MatrixData = vec![vec![]];
-        let _: PolynomialMatrix = data.into();
+    fn test_matrix_creation_failed_empty_array() {
+        let data = vec![];
+        let matrix: Matrix<Poly7> = data.into();
     }
 
     #[test]
     #[should_panic]
-    fn test_failed_matrix_creation_inconsistency_in_terms_of_number_of_columns() {
-        let ring = PolynomialRing::new(3, 5);
-        let poly_1 = Polynomial::zero(&ring);
-        let poly_2 = Polynomial::zero(&ring);
-        let poly_3 = Polynomial::zero(&ring);
-
-
-        let data: MatrixData = vec![vec![poly_1, poly_2], vec![poly_3]];
-        let _: PolynomialMatrix = data.into();
+    fn test_matrix_creation_failed_empty_array_first_row() {
+        let data = vec![vec![]];
+        let matrix: Matrix<Poly7> = data.into();
     }
 
     #[test]
     #[should_panic]
-    fn test_failed_matrix_creation_not_same_ring_ref() {
-        let ring_1 = PolynomialRing::new(3, 5);
-        let ring_2 = PolynomialRing::new(3, 7);
-        let poly_1 = Polynomial::zero(&ring_1);
-        let poly_2 = Polynomial::zero(&ring_2);
+    fn test_matrix_creation_failed_columns_number_mismatch() {
+        let poly_1 = Poly7::zero();
+        let poly_2 = Poly7::zero();
+        let poly_3 = Poly7::zero();
 
-        let data: MatrixData = vec![vec![poly_1, poly_2]];
-        let _: PolynomialMatrix = data.into();
+        let data = vec![
+            vec![poly_1, poly_2],
+            vec![poly_3]
+        ];
+        let matrix: Matrix<Poly7> = data.into();
     }
 
     #[test]
-    fn test_should_create_a_matrix_successfully() {
-        let ring = PolynomialRing::new(3, 5);
-        let poly_1 = Polynomial::zero(&ring);
-        let poly_2 = Polynomial::zero(&ring);
-        let data: MatrixData = vec![vec![poly_1, poly_2]];
-        let _: PolynomialMatrix = data.into();
-    }
+    fn test_matrix_creation_should_be_successful() {
+        let poly_1 = Poly7::zero();
+        let poly_2 = Poly7::zero();
+        let poly_3 = Poly7::zero();
+        let poly_4 = Poly7::zero();
 
-    #[test]
-    fn test_get_shape() {
-        let ring = PolynomialRing::new(3, 5);
-        let poly_1 = Polynomial::zero(&ring);
-        let data: MatrixData = vec![vec![poly_1]];
-        let matrix: PolynomialMatrix = data.into();
-        assert_eq!(matrix.get_shape(), (1, 1))
+        let data = vec![
+            vec![poly_1, poly_2],
+            vec![poly_3, poly_4]
+        ];
+        let matrix: Matrix<Poly7> = data.into();
 
+        assert_eq!(matrix.number_rows, 2);
+        assert_eq!(matrix.number_columns, 2)
     }
 }
+
+
