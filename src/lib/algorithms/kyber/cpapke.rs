@@ -4,7 +4,7 @@ use crate::hash::{sha_512, shake_128, shake_256};
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::matrix::MatrixRQ;
-use crate::algorithms::kyber::ntt::{ntt, ntt_matrix};
+use crate::algorithms::kyber::ntt::{ntt, ntt_matrix, ntt_matrix_product};
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
 pub struct KyberCPAPKE<const V: usize> {
@@ -165,7 +165,7 @@ impl <const N: usize> KyberCPAPKE<N> {
         let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
         let bits = bytes_array.to_bits();
 
-        for i in 0..256 {
+        for i in 0..KYBER_N_VALUE {
             let mut a = 0 as usize;
             let mut b = 0 as usize;
 
@@ -214,6 +214,8 @@ impl <const N: usize> KyberCPAPKE<N> {
         // Applying NTT transformation to s and e
         ntt_matrix(&mut s);
         ntt_matrix(&mut e);
+
+        let t_hat = ntt_matrix_product(&a_hat, &s) + e;
 
         (ByteArray::random(2), ByteArray::random(2))
     }

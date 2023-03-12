@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::ops::{Deref, Index};
 use crate::algebraic::galois_field::GaloisField;
 
@@ -6,9 +7,11 @@ pub trait RingElement {
     fn zero() -> Self;
     fn is_zero(&self) -> bool;
     fn mul(&self, other: &Self) -> Self;
+    fn remainder(&self, divisor: &Self) -> Self;
+    fn add(&self, other: &Self) -> Self;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Polynomial<C, const N: usize>
 where C: GaloisField + Default {
     coefficients: [C; N],
@@ -22,8 +25,6 @@ impl <C, const N: usize> From<[C; N]> for Polynomial<C, N> where C: GaloisField 
             coefficients: value,
             degree
         }
-
-
     }
 }
 
@@ -84,10 +85,11 @@ impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy
         let mut poly_degree = poly_degree.unwrap();
         let divisor_degree = divisor_degree.unwrap();
 
-        // Determining lambda_value and lambda_degree
+
         loop {
             let poly_coefficient = poly_copy[poly_degree];
 
+            // Determining lambda_value and lambda_degree
             let neg = -1 * poly_coefficient.value() as i32;
             let lambda_value: C = neg.into();
             let lambda_degree = poly_degree - divisor_degree;
@@ -167,6 +169,43 @@ impl <C, const N: usize> RingElement for Polynomial<C, N> where C: GaloisField +
 
         buffer.into()
     }
+
+    fn remainder(&self, divisor: &Self) -> Self {
+        let remainder_coefficients = Self::poly_euclidean_division(&self.coefficients, &divisor.coefficients);
+        let mut buffer = [C::default(); N];
+        buffer.copy_from_slice(&remainder_coefficients[0..N]);
+        buffer.into()
+    }
+
+    fn add(&self, other: &Self) -> Self {
+        // Checking if self or other is the zero polynomial
+        if self.is_zero() {
+            return other.clone();
+        }
+        if other.is_zero() {
+            return self.clone();
+        }
+
+        let mut coefficients = [C::default(); N];
+        let min_degree = min(self.degree.unwrap(), other.degree.unwrap());
+
+        for i in 0..=min_degree {
+            coefficients[i] = self.coefficients[i].add(&other.coefficients[i]);
+        }
+
+        let max_degree = max(self.degree.unwrap(), other.degree.unwrap());
+        let self_has_greater_degree = self.degree().unwrap() > other.degree.unwrap();
+
+        for i in min_degree+1..=max_degree {
+            coefficients[i] = if self_has_greater_degree {
+                self[i]
+            } else {
+                other[i]
+            };
+        }
+
+        coefficients.into()
+    }
 }
 
 impl <C, const N: usize>Index<usize> for Polynomial<C, N> where  C: GaloisField + Default + Copy + Clone {
@@ -179,7 +218,6 @@ impl <C, const N: usize>Index<usize> for Polynomial<C, N> where  C: GaloisField 
         self.coefficients.get(index).unwrap()
     }
 }
-
 
 
 #[cfg(test)]
@@ -342,5 +380,24 @@ mod tests {
 
         assert_eq!(out_poly.degree, Some(expected_degree));
         assert_eq!(out_poly[1], expected_coefficient.into());
+    }
+
+    #[test]
+    fn test_polynomial_addition() {
+        let f_poly = Poly::from_degrees(
+            &[0, 1, 2],
+            &[1.into(), 1.into(), 1.into()]
+        );
+        let g_poly = Poly::from_degrees(
+            &[0, 1],
+            &[1.into(), 1.into()]
+        );
+        let out_poly = f_poly.add(&g_poly);
+
+        let expected_degree = 2;
+
+        assert_eq!(out_poly.degree, Some(expected_degree));
+        assert_eq!(out_poly[0], 2.into());
+        assert_eq!(out_poly[1], 2.into());
     }
  }
