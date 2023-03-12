@@ -80,28 +80,69 @@ pub fn ntt_matrix(matrix: &mut MatrixRQ) {
 
 }
 
-pub fn ntt_basecase_multiplication(first_poly: &PolyRQ, second_poly: &PolyRQ) -> PolyRQ {
+pub fn ntt_basecase_multiplication(f_hat: &PolyRQ, g_hat: &PolyRQ) -> PolyRQ {
     // Checking if one of the two polynomials (at least) is the zero polynomial as the result
     // would be the zero polynomial
-    if first_poly.is_zero() || second_poly.is_zero() {
+    if f_hat.is_zero() || g_hat.is_zero() {
         return PolyRQ::zero()
     }
 
     let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
 
     for i in 0..(KYBER_N_VALUE - 1)/2 {
-        let f_poly = PolyRQ::from_degrees(
-            &[0, 1],
-            &[first_poly[2 * i], first_poly[2 * i + 1]]
-        );
-        let g_poly = PolyRQ::from_degrees(
-            &[0, 1],
-            &[second_poly[2 * i], second_poly[2 * i + 1]]
-        );
+        let zeta_index = (2 * br7(i as u8) as usize + 1).rem_euclid(KYBER_N_VALUE);
+        let zeta = GF3329::from(*ZETAS_256.get(zeta_index).unwrap());
 
+        let f_hat_two_i = f_hat[2 * i];
+        let f_hat_two_i_plus_one = f_hat[2 * i + 1];
+
+        let g_hat_two_i = g_hat[2 * i];
+        let g_hat_two_i_plus_one = g_hat[2 * i + 1];
+
+        let h_0 = f_hat_two_i
+            .mul(&g_hat_two_i)
+            .add(&f_hat_two_i_plus_one.mul(&g_hat_two_i_plus_one).mul(&zeta));
+
+        let h_1 = f_hat_two_i
+            .mul(&g_hat_two_i_plus_one)
+            .add(&g_hat_two_i.mul(&f_hat_two_i_plus_one));
+
+        coefficients[2 * i] = h_0;
+        coefficients[2 * i + 1] = h_1;
     }
 
     coefficients.into()
+}
+
+
+pub fn ntt_matrix_product(matrix_a: &MatrixRQ, matrix_b: &MatrixRQ) -> MatrixRQ {
+    // Checking that matrix product is possible
+    let matrix_a_shape = matrix_a.get_shape();
+    let matrix_b_shape = matrix_b.get_shape();
+
+    if matrix_a_shape.1 != matrix_b_shape.0 {
+        panic!("Cannot perform matrix multiplication");
+    }
+
+    let mut matrix_data =  Vec::with_capacity(matrix_a_shape.0 as usize);
+
+    for i in 0..matrix_a_shape.0 {
+        let mut  row_data = Vec::with_capacity(matrix_b_shape.1 as usize);
+
+        for j in 0..matrix_b_shape.1 {
+            let mut cell_poly = PolyRQ::zero();
+            for k in 0..matrix_b_shape.0 {
+                let first_poly = matrix_a.get_element(i, k);
+                let second_poly = matrix_b.get_element(k, j);
+                let result_poly = ntt_basecase_multiplication(first_poly, second_poly);
+                cell_poly = cell_poly.add(&result_poly);
+            }
+            row_data.push(cell_poly) ;
+        }
+
+        matrix_data.push(row_data);
+    }
+    matrix_data.into()
 }
 
 

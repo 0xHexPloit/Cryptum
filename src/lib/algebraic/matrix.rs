@@ -1,3 +1,4 @@
+use std::ops::{Add};
 use crate::algebraic::polynomial::RingElement;
 
 type MatrixContent<P> = Vec<Vec<P>>;
@@ -68,6 +69,35 @@ impl <P: RingElement> Matrix<P> {
     }
 }
 
+impl <P: RingElement>Add for Matrix<P> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // Checking that both matrices have the same shape
+        let left_matrix_shape = self.get_shape();
+        let right_matrix_shape = rhs.get_shape();
+
+        if left_matrix_shape != right_matrix_shape {
+            panic!("Cannot perform matrices addition ! They don't have the same shape!")
+        }
+
+        let mut matrix_data = Vec::with_capacity(left_matrix_shape.0 as usize);
+
+        for i in 0..left_matrix_shape.0 {
+            let mut row_data = Vec::with_capacity(left_matrix_shape.1 as usize);
+
+            for j in 0..left_matrix_shape.1 {
+                row_data.push(self.get_element(i, j).add(rhs.get_element(i, j)));
+            }
+
+            matrix_data.push(row_data);
+        }
+
+        matrix_data.into()
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::algebraic::galois_field::GaloisFieldCore;
@@ -81,14 +111,14 @@ mod tests {
     #[should_panic]
     fn test_matrix_creation_failed_empty_array() {
         let data = vec![];
-        let matrix: Matrix<Poly7> = data.into();
+        let _: Matrix<Poly7> = data.into();
     }
 
     #[test]
     #[should_panic]
     fn test_matrix_creation_failed_empty_array_first_row() {
         let data = vec![vec![]];
-        let matrix: Matrix<Poly7> = data.into();
+        let _: Matrix<Poly7> = data.into();
     }
 
     #[test]
@@ -102,7 +132,7 @@ mod tests {
             vec![poly_1, poly_2],
             vec![poly_3]
         ];
-        let matrix: Matrix<Poly7> = data.into();
+        let _: Matrix<Poly7> = data.into();
     }
 
     #[test]
