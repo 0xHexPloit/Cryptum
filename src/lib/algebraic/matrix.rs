@@ -1,7 +1,7 @@
-use std::ops::{Add};
 use crate::algebraic::polynomial::RingElement;
 
-type MatrixContent<P> = Vec<Vec<P>>;
+type Row<P> = Vec<P>;
+type MatrixContent<P> = Vec<Row<P>>;
 
 fn check_matrix_content<P: RingElement>(content: &MatrixContent<P>) {
     // Checking that matrix contains some rows
@@ -53,50 +53,11 @@ impl <P: RingElement> Matrix<P> {
     pub fn get_shape(&self) -> (u8, u8) {
         (self.number_rows, self.number_columns)
     }
-    pub fn set(&mut self, i: u8, j: u8, content: P) {
-        if i >= self.number_rows || j >= self.number_columns {
-            panic!("Invalid coordinates!");
-        }
-        let mut_matrix_content: &mut MatrixContent<P> = self.data.as_mut();
-        mut_matrix_content[i as usize][j as usize] = content;
-    }
 
-    pub fn get_element(&self, i: u8, j: u8) -> &P {
-        if i >= self.number_rows || j >= self.number_columns {
-            panic!("Invalid coordinates!");
-        }
-        &self.data[i as usize][j as usize]
+    pub fn get_row(&self, index: usize) -> &Row<P> {
+        &self.data[index]
     }
 }
-
-impl <P: RingElement>Add for Matrix<P> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        // Checking that both matrices have the same shape
-        let left_matrix_shape = self.get_shape();
-        let right_matrix_shape = rhs.get_shape();
-
-        if left_matrix_shape != right_matrix_shape {
-            panic!("Cannot perform matrices addition ! They don't have the same shape!")
-        }
-
-        let mut matrix_data = Vec::with_capacity(left_matrix_shape.0 as usize);
-
-        for i in 0..left_matrix_shape.0 {
-            let mut row_data = Vec::with_capacity(left_matrix_shape.1 as usize);
-
-            for j in 0..left_matrix_shape.1 {
-                row_data.push(self.get_element(i, j).add(rhs.get_element(i, j)));
-            }
-
-            matrix_data.push(row_data);
-        }
-
-        matrix_data.into()
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

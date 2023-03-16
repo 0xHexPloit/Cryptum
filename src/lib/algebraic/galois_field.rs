@@ -30,12 +30,6 @@ impl <const P: usize>From<i32> for GaloisFieldCore<P> {
     }
 }
 
-impl<const P: usize> GaloisFieldCore<P> {
-    pub fn into_inner(self) -> usize {
-        self.0
-    }
-}
-
 
 impl <const P: usize>Default for GaloisFieldCore<P> {
     fn default() -> Self {

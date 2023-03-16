@@ -1,20 +1,21 @@
-use std::ops::Index;
-use crate::algebraic::galois_field::GaloisField;
+use std::ops::{Add, Index};
+use crate::algebraic::polynomial::RingElement;
 
-pub struct Vector<C: GaloisField> {
+#[derive(Debug)]
+pub struct Vector<C: RingElement> {
     coefficients: Vec<C>,
-    num_coefficients: usize
+    n: usize
 }
 
-impl <C: GaloisField> From<Vec<C>> for Vector<C> {
+impl <C: RingElement> From<Vec<C>> for Vector<C> {
     fn from(value: Vec<C>) -> Self {
         let length = value.len();
-        Self {coefficients: value, num_coefficients: length}
+        Self {coefficients: value, n: length}
 
     }
 }
 
-impl <C: GaloisField>Index<usize> for Vector<C> {
+impl <C: RingElement>Index<usize> for Vector<C> {
     type Output = C;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -22,8 +23,28 @@ impl <C: GaloisField>Index<usize> for Vector<C> {
     }
 }
 
-impl <C: GaloisField>  Vector<C> {
-    pub fn get_num_coefficients(&self) -> usize {
-        self.num_coefficients
+impl <C: RingElement>  Vector<C> {
+    pub fn get_n(&self) -> usize {
+        self.n
+    }
+}
+
+impl <C: RingElement + Clone>Add for Vector<C> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // Checking that both vectors have the same number of coefficients
+        if self.get_n() != rhs.get_n() {
+            panic!("Vectors don't have the same number of coefficients. Cannot perform addition")
+        }
+
+        let mut polynomials: Vec<C> = Vec::with_capacity(self.get_n());
+
+        for i in 0..self.get_n() {
+            let poly = &self[i].add(&rhs[i]);
+            polynomials.push(poly.clone())
+        }
+
+        polynomials.into()
     }
 }

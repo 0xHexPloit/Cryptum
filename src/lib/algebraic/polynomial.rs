@@ -28,8 +28,6 @@ impl <C, const N: usize> From<[C; N]> for Polynomial<C, N> where C: GaloisField 
     }
 }
 
-
-
 impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy + Clone  + From<i32> {
     pub fn from_degrees(degrees: &[usize], coefficients: &[C]) -> Self {
         // Checking that degrees and coefficients have the same length

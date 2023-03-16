@@ -1,7 +1,4 @@
-use std::arch::aarch64::vcopy_lane_u16;
 use crate::algebraic::galois_field::GaloisField;
-use crate::algebraic::polynomial::RingElement;
-use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE};
 use crate::algorithms::kyber::galois_field::GF3329;
 
 
@@ -50,8 +47,8 @@ pub fn ntt_inv_rec(poly: &mut [GF3329], zeta_index: u8, layer: usize) {
         ntt_inv_rec(poly_split.1, zeta_index * 2 + 1, layer / 2);
     }
 
-    /// As zeta is a 256th primitive root of unity if we take u = zeta^u and v = zeta^(256 - u) then
-    /// one could affirm that u.v [q] = zeta^u * zeta^(256 - u) [q] = zeta^256 [q] = 1.
+    // As zeta is a 256th primitive root of unity if we take u = zeta^u and v = zeta^(256 - u) then
+    // one could affirm that u.v [q] = zeta^u * zeta^(256 - u) [q] = zeta^256 [q] = 1.
     let zeta_index_inverse = (256 - br7(zeta_index) as usize).rem_euclid(256);
     let zeta_inverse = GF3329::from(ZETAS_256[zeta_index_inverse]);
 
@@ -92,10 +89,7 @@ pub fn ntt_rec(poly: &mut [GF3329], zeta_index: u8, layer: usize) {
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::kyber::constants::KYBER_N_VALUE;
-    use crate::algorithms::kyber::galois_field::GF3329;
-    use crate::algorithms::kyber::ntt::{br7, ntt_rec};
-    use crate::algorithms::kyber::polynomial::PolyRQ;
+    use crate::algorithms::kyber::ntt::{br7};
 
     #[test]
     fn test_br_7() {

@@ -1,7 +1,7 @@
 use crate::algebraic::galois_field::GaloisField;
 use crate::algebraic::polynomial::{Polynomial, RingElement};
 use crate::algorithms::kyber::galois_field::GF3329;
-use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE};
+use crate::algorithms::kyber::constants::{KYBER_N_VALUE};
 use crate::algorithms::kyber::ntt::{br7, NTT, ntt_inv_rec, ntt_rec, ZETAS_256};
 
 pub type PolyRQ = Polynomial<GF3329, KYBER_N_VALUE>;
