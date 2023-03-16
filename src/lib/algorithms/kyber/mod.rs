@@ -6,5 +6,7 @@ mod matrix;
 mod ntt;
 mod byte_array;
 mod vector;
+mod encoder;
+mod utils;
 
 

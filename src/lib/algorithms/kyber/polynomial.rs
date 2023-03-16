@@ -1,8 +1,11 @@
 use crate::algebraic::galois_field::GaloisField;
 use crate::algebraic::polynomial::{Polynomial, RingElement};
+use crate::algorithms::kyber::byte_array::ByteArray;
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE};
+use crate::algorithms::kyber::encoder::{Encoder};
 use crate::algorithms::kyber::ntt::{br7, NTT, ntt_inv_rec, ntt_rec, ZETAS_256};
+use crate::algorithms::kyber::utils::poly_coefficients_to_bits;
 
 pub type PolyRQ = Polynomial<GF3329, KYBER_N_VALUE>;
 
@@ -61,6 +64,12 @@ impl PolyRQ {
     }
 }
 
+impl Encoder for PolyRQ {
+    fn encode(&self, l_value: usize) -> ByteArray {
+        let bits = poly_coefficients_to_bits(self, l_value);
+        ByteArray::from_bits(bits)
+    }
+}
 
 
 

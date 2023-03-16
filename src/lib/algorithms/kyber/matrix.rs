@@ -5,7 +5,7 @@ use crate::algorithms::kyber::vector::VectorRQ;
 pub type MatrixRQ = Matrix<PolyRQ>;
 
 impl MatrixRQ {
-    pub fn multiply_vec(&self, other: VectorRQ) -> VectorRQ {
+    pub fn multiply_vec(&self, other: &VectorRQ) -> VectorRQ {
         let mut polynomials = Vec::with_capacity(other.get_n());
         let matrix_shape = self.get_shape();
 

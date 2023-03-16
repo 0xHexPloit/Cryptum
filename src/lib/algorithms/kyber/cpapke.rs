@@ -1,6 +1,7 @@
 use crate::algebraic::galois_field::GaloisField;
 use crate::algorithms::kyber::byte_array::ByteArray;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
+use crate::algorithms::kyber::encoder::Encoder;
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::matrix::MatrixRQ;
 use crate::algorithms::kyber::ntt::NTT;
@@ -139,6 +140,11 @@ impl <const N: usize> KyberCPAPKE<N> {
     }
 
 
+    fn encode_12(&self, vec: VectorRQ) -> ByteArray {
+        vec.encode(12)
+    }
+
+
     /// This function corresponds to the PRF function as defined in p5 of the article.
     ///
     /// Input:
@@ -217,9 +223,13 @@ impl <const N: usize> KyberCPAPKE<N> {
         let s_hat = s.to_ntt();
         let e_hat = e.to_ntt();
 
-        let t_hat = a_hat.multiply_vec(s_hat) + e_hat;
+        let t_hat = a_hat.multiply_vec(&s_hat) + e_hat;
 
-        (ByteArray::random(2), ByteArray::random(2))
+        let public_key = ByteArray::concat(&[&self.encode_12(t_hat), &rho]);
+        let private_key = self.encode_12(s_hat);
+
+
+        (public_key, private_key)
     }
 }
 
@@ -273,8 +283,14 @@ mod tests {
 
     #[test]
     fn test_keygen() {
-        let seed = ByteArray::random(32);
         let kyber=  KyberCPAPKE512::init();
-        let _ = kyber.keygen();
+        let (public_key, private_key) = kyber.keygen();
+
+        let expected_length_public_key = 800;
+        let expected_length_private_key = 768;
+
+        assert_eq!(public_key.length(), expected_length_public_key);
+        assert_eq!(private_key.length(), expected_length_private_key)
+
     }
 }

@@ -1,2 +1,2 @@
-pub mod bytes;
+pub mod bits;
 pub mod hash;

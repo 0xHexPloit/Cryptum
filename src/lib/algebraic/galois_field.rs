@@ -15,6 +15,9 @@ impl <const P: usize>GaloisFieldCore<P> {
     pub const fn new(val: usize) -> Self {
         Self(val.rem_euclid(P))
     }
+    pub fn into_inner(self) -> usize {
+        self.0
+    }
 }
 
 

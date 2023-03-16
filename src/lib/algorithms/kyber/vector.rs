@@ -1,5 +1,7 @@
 use crate::algebraic::polynomial::RingElement;
 use crate::algebraic::vector::Vector;
+use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::kyber::encoder::{Encoder};
 use crate::algorithms::kyber::ntt::NTT;
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
@@ -29,6 +31,21 @@ impl NTT for VectorRQ{
         coefficients.into()
     }
 }
+
+impl Encoder for VectorRQ {
+    fn encode(&self, l_value: usize) -> ByteArray {
+        let mut bytes = ByteArray::empty();
+
+        for i in 0..self.get_n() {
+            let poly = &self[i];
+            let poly_bytes = poly.encode(l_value);
+            bytes = ByteArray::concat(&[&bytes, &poly_bytes])
+        }
+
+        bytes
+    }
+}
+
 
 impl VectorRQ {
     pub fn dot_ntt(&self, other: &Self) -> PolyRQ {

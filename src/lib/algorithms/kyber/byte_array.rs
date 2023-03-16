@@ -1,6 +1,7 @@
 use rand::{RngCore, thread_rng};
-use crate::utils::bytes::byte_to_bits;
+use crate::utils::bits::{bits_to_byte, byte_to_bits};
 
+#[derive(Debug)]
 pub struct ByteArray {
     values: Vec<u8>
 }
@@ -15,6 +16,10 @@ impl ByteArray {
 
     pub fn get_bytes(&self) -> &[u8] {
         self.values.as_slice()
+    }
+
+    pub fn length(&self) -> usize {
+        self.values.len()
     }
 
     pub fn concat(items: &[&Self]) -> Self {
@@ -38,6 +43,25 @@ impl ByteArray {
         output
     }
 
+    pub fn from_bits(bits: Vec<u8>) -> Self {
+        // Checking that bits has the correct length
+        if bits.len() % 8 != 0 {
+            panic!("bits has an incorrect length")
+        }
+        let output_length = bits.len() % 8;
+        let mut bytes = Vec::with_capacity(output_length);
+
+        for chunk in bits.chunks_exact(8) {
+            let byte = bits_to_byte(chunk);
+            bytes.push(byte);
+        }
+
+        bytes.into()
+    }
+
+    pub fn empty() -> Self {
+        Self {values: vec![]}
+    }
 }
 
 impl From<&[u8]> for ByteArray {
@@ -106,5 +130,13 @@ mod tests {
         let data = ByteArray::from([2, 3].as_slice());
         let bits = data.to_bits();
         assert_eq!(bits, [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1])
+    }
+
+    #[test]
+    fn test_length() {
+        let data = [1, 2, 4];
+        let bytes_array = ByteArray::from(data.to_vec());
+        let expected_length = 3;
+        assert_eq!(bytes_array.length(), expected_length)
     }
 }
