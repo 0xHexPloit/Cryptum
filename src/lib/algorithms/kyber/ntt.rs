@@ -1,12 +1,19 @@
+use std::arch::aarch64::vcopy_lane_u16;
 use crate::algebraic::galois_field::GaloisField;
 use crate::algebraic::polynomial::RingElement;
-use crate::algorithms::kyber::constants::KYBER_N_VALUE;
+use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE};
 use crate::algorithms::kyber::galois_field::GF3329;
-use crate::algorithms::kyber::polynomial::PolyRQ;
-use crate::algorithms::kyber::matrix::MatrixRQ;
+
+
+pub trait NTT {
+    fn inverse_ntt(self) -> Self;
+    fn to_ntt(self) -> Self;
+}
+
+const INVERSE_OF_2_MOD_Q: GF3329 =  GF3329::new(1665);
 
 /// This array corresponds to the 256th-roots of unity using the following primitive 17
-const ZETAS_256: [usize; 256] = [
+pub const ZETAS_256: [usize; 256] = [
     1, 17, 289, 1584, 296, 1703, 2319, 2804, 1062, 1409, 650, 1063, 1426, 939, 2647, 1722, 2642,
     1637, 1197, 375, 3046, 1847, 1438, 1143, 2786, 756, 2865, 2099, 2393, 733, 2474, 2110, 2580,
     583, 3253, 2037, 1339, 2789, 807, 403, 193, 3281, 2513, 2773, 535, 2437, 1481, 1874, 1897,
@@ -31,125 +38,64 @@ fn br<const K: u8>(i: u8) -> u8 {
     u8::from_str_radix(&bin_i.chars().rev().collect::<String>(), 2).unwrap() // reverse the binary string and convert it back to integer
 }
 
-fn br7(i: u8) -> u8 {
+pub fn br7(i: u8) -> u8 {
     br::<7>(i)
 }
 
-
-pub fn ntt(poly: &PolyRQ) -> PolyRQ {
-    // Checking if poly is the zero polynomial
-    if poly.is_zero() {
-        return PolyRQ::zero();
+pub fn ntt_inv_rec(poly: &mut [GF3329], zeta_index: u8, layer: usize) {
+    if layer != 2{
+        // Applying divide and conquer strategy
+        let poly_split = poly.split_at_mut(layer);
+        ntt_inv_rec(poly_split.0, zeta_index * 2 , layer / 2);
+        ntt_inv_rec(poly_split.1, zeta_index * 2 + 1, layer / 2);
     }
 
-    let mut coefficients = [GF3329::default(); KYBER_N_VALUE];
+    /// As zeta is a 256th primitive root of unity if we take u = zeta^u and v = zeta^(256 - u) then
+    /// one could affirm that u.v [q] = zeta^u * zeta^(256 - u) [q] = zeta^256 [q] = 1.
+    let zeta_index_inverse = (256 - br7(zeta_index) as usize).rem_euclid(256);
+    let zeta_inverse = GF3329::from(ZETAS_256[zeta_index_inverse]);
 
-    for i in 0..KYBER_N_VALUE/2{
-        let mut f_two_i_hat = GF3329::zero();
-        let mut f_two_i_plus_one_hat = GF3329::zero();
+    for i in 0..layer {
+        let u_plus_v = poly[i].add(&poly[i + layer]);
+        let u_minus_v = poly[i].sub(&poly[i + layer]);
 
-        for j in 0..KYBER_N_VALUE/2 {
-            let zeta_index = ((2 as usize * br7(i as u8) as usize + 1 as usize) * j).rem_euclid(KYBER_N_VALUE);
-            let zeta: GF3329 = ZETAS_256.get(zeta_index).unwrap().clone().into();
-
-            let first_poly_coeff = poly[2 as usize * j];
-            let second_poly_coeff = poly[2 as usize * j + 1 as usize];
-
-            let first_coeff =  first_poly_coeff.mul(&zeta);
-            let second_coeff = second_poly_coeff.mul(&zeta);
-
-            f_two_i_hat = f_two_i_hat.add(&first_coeff);
-            f_two_i_plus_one_hat = f_two_i_plus_one_hat.add(&second_coeff);
-        }
-
-        coefficients[2 as usize * i] = f_two_i_hat;
-        coefficients[2 as usize * i + 1 as usize] = f_two_i_plus_one_hat;
+        // WARNING: Based on the paper used https://eprint.iacr.org/2021/563.pdf, we obtain 2 * a_o
+        // (and 2 * a_1 * zeta) using the formula this is why we have to define to define the inverse of 2 [q]
+        poly[i] = INVERSE_OF_2_MOD_Q.mul(&u_plus_v);
+        poly[i + layer] = INVERSE_OF_2_MOD_Q.mul(&zeta_inverse.mul(&u_minus_v));
     }
-    coefficients.into()
 }
 
 
-pub fn ntt_matrix(matrix: &mut MatrixRQ) {
-    let matrix_shape = matrix.get_shape();
-
-    for i in 0..matrix_shape.0 {
-        for j in 0..matrix_shape.1 {
-            matrix.set(i, j, ntt(matrix.get_element(i, j)))
-        }
+pub fn ntt_rec(poly: &mut [GF3329], zeta_index: u8, layer: usize) {
+    if layer < 2 {
+        return
     }
 
+    let zeta = GF3329::from(ZETAS_256[br7(zeta_index) as usize]);
+
+    for i in 0..layer {
+        let t = zeta.mul(&poly[layer + i]);
+
+        poly[i + layer] = poly[i].sub(&t);
+        poly[i] = poly[i].add(&t);
+
+    }
+
+    let poly_split = poly.split_at_mut(layer);
+
+
+    ntt_rec(poly_split.0, zeta_index * 2, layer / 2);
+    ntt_rec(poly_split.1, zeta_index * 2 + 1, layer / 2);
 }
-
-pub fn ntt_basecase_multiplication(f_hat: &PolyRQ, g_hat: &PolyRQ) -> PolyRQ {
-    // Checking if one of the two polynomials (at least) is the zero polynomial as the result
-    // would be the zero polynomial
-    if f_hat.is_zero() || g_hat.is_zero() {
-        return PolyRQ::zero()
-    }
-
-    let mut coefficients = [GF3329::zero(); KYBER_N_VALUE];
-
-    for i in 0..(KYBER_N_VALUE - 1)/2 {
-        let zeta_index = (2 * br7(i as u8) as usize + 1).rem_euclid(KYBER_N_VALUE);
-        let zeta = GF3329::from(*ZETAS_256.get(zeta_index).unwrap());
-
-        let f_hat_two_i = f_hat[2 * i];
-        let f_hat_two_i_plus_one = f_hat[2 * i + 1];
-
-        let g_hat_two_i = g_hat[2 * i];
-        let g_hat_two_i_plus_one = g_hat[2 * i + 1];
-
-        let h_0 = f_hat_two_i
-            .mul(&g_hat_two_i)
-            .add(&f_hat_two_i_plus_one.mul(&g_hat_two_i_plus_one).mul(&zeta));
-
-        let h_1 = f_hat_two_i
-            .mul(&g_hat_two_i_plus_one)
-            .add(&g_hat_two_i.mul(&f_hat_two_i_plus_one));
-
-        coefficients[2 * i] = h_0;
-        coefficients[2 * i + 1] = h_1;
-    }
-
-    coefficients.into()
-}
-
-
-pub fn ntt_matrix_product(matrix_a: &MatrixRQ, matrix_b: &MatrixRQ) -> MatrixRQ {
-    // Checking that matrix product is possible
-    let matrix_a_shape = matrix_a.get_shape();
-    let matrix_b_shape = matrix_b.get_shape();
-
-    if matrix_a_shape.1 != matrix_b_shape.0 {
-        panic!("Cannot perform matrix multiplication");
-    }
-
-    let mut matrix_data =  Vec::with_capacity(matrix_a_shape.0 as usize);
-
-    for i in 0..matrix_a_shape.0 {
-        let mut  row_data = Vec::with_capacity(matrix_b_shape.1 as usize);
-
-        for j in 0..matrix_b_shape.1 {
-            let mut cell_poly = PolyRQ::zero();
-            for k in 0..matrix_b_shape.0 {
-                let first_poly = matrix_a.get_element(i, k);
-                let second_poly = matrix_b.get_element(k, j);
-                let result_poly = ntt_basecase_multiplication(first_poly, second_poly);
-                cell_poly = cell_poly.add(&result_poly);
-            }
-            row_data.push(cell_poly) ;
-        }
-
-        matrix_data.push(row_data);
-    }
-    matrix_data.into()
-}
-
 
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::kyber::ntt::br7;
+    use crate::algorithms::kyber::constants::KYBER_N_VALUE;
+    use crate::algorithms::kyber::galois_field::GF3329;
+    use crate::algorithms::kyber::ntt::{br7, ntt_rec};
+    use crate::algorithms::kyber::polynomial::PolyRQ;
 
     #[test]
     fn test_br_7() {
@@ -158,6 +104,8 @@ mod tests {
         let out = br7(tested_value);
         assert_eq!(out, expected_value);
     }
+
+
 }
 
 

@@ -1,5 +1,5 @@
 use rand::{RngCore, thread_rng};
-use crate::helper::bytes::byte_to_bits;
+use crate::utils::bytes::byte_to_bits;
 
 pub struct ByteArray {
     values: Vec<u8>
@@ -66,7 +66,7 @@ impl From<Vec<u8>> for ByteArray {
 
 #[cfg(test)]
 mod tests {
-    use crate::byte_array::ByteArray;
+    use crate::algorithms::kyber::byte_array::ByteArray;
 
     #[test]
     fn test_random_byte_array_creation() {

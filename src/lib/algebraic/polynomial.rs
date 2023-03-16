@@ -11,7 +11,7 @@ pub trait RingElement {
     fn add(&self, other: &Self) -> Self;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Polynomial<C, const N: usize>
 where C: GaloisField + Default {
     coefficients: [C; N],
@@ -27,6 +27,8 @@ impl <C, const N: usize> From<[C; N]> for Polynomial<C, N> where C: GaloisField 
         }
     }
 }
+
+
 
 impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy + Clone  + From<i32> {
     pub fn from_degrees(degrees: &[usize], coefficients: &[C]) -> Self {
@@ -63,6 +65,10 @@ impl <C, const N: usize>  Polynomial<C, N> where C: GaloisField + Default + Copy
         } else {
             Some(degree)
         }
+    }
+
+    pub fn get_coefficients(&self) -> &[C] {
+        self.coefficients.as_slice()
     }
 
 
