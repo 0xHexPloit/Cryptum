@@ -9,11 +9,11 @@ pub type VectorRQ = Vector<PolyRQ>;
 
 impl NTT for VectorRQ{
     fn inverse_ntt(self) -> Self {
-        let mut coefficients = vec![];
+        let mut coefficients: Vec<PolyRQ> = Vec::with_capacity(self.get_n());
 
         for i in 0..self.get_n() {
             let poly = self[i].clone();
-            coefficients[i] = poly.inverse_ntt();
+            coefficients.push(poly.inverse_ntt());
         }
 
         coefficients.into()

@@ -62,6 +62,12 @@ impl ByteArray {
     pub fn empty() -> Self {
         Self {values: vec![]}
     }
+
+    pub fn slice(&self, start_pos: usize) -> ByteArray {
+        let (_, slice) = self.values.split_at(start_pos);
+        slice.into()
+    }
+
 }
 
 impl From<&[u8]> for ByteArray {

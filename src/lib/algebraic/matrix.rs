@@ -49,13 +49,29 @@ impl <P: RingElement>From<MatrixContent<P>> for Matrix<P> {
 }
 
 
-impl <P: RingElement> Matrix<P> {
+impl <P: RingElement + Clone> Matrix<P> {
     pub fn get_shape(&self) -> (u8, u8) {
         (self.number_rows, self.number_columns)
     }
 
     pub fn get_row(&self, index: usize) -> &Row<P> {
         &self.data[index]
+    }
+
+    pub fn transpose(self) -> Self {
+        let matrix_shape = self.get_shape();
+        let mut matrix_data = Vec::with_capacity(matrix_shape.1 as usize);
+
+        for column in 0..matrix_shape.1 {
+            let mut row_data: Row<P> = Vec::with_capacity(matrix_shape.0 as usize);
+            for row in 0..matrix_shape.0 {
+                let poly = &self.get_row(row as usize)[column as usize];
+                row_data.push((*poly).clone())
+            }
+            matrix_data.push(row_data)
+        }
+
+        matrix_data.into()
     }
 }
 
@@ -111,6 +127,38 @@ mod tests {
 
         assert_eq!(matrix.number_rows, 2);
         assert_eq!(matrix.number_columns, 2)
+    }
+
+    #[test]
+    fn test_matrix_transpose() {
+        let poly_1 = Poly7::from_degrees(
+            &[0, 1],
+            &[1.into(), 1.into()]
+        );
+        let poly_2 = Poly7::from_degrees(
+            &[0, 1],
+            &[2.into(), 2.into()]
+        );
+        let poly_3 = Poly7::from_degrees(
+            &[0, 1],
+            &[3.into(), 3.into()]
+        );
+        let poly_4 = Poly7::from_degrees(
+            &[0, 1],
+            &[4.into(), 4.into()]
+        );
+
+        let matrix_data = vec![
+            vec![poly_1.clone(), poly_2.clone()],
+            vec![poly_3.clone(), poly_4.clone()]
+        ];
+        let matrix = Matrix::from(matrix_data);
+        let matrix_transpose = matrix.transpose();
+
+        assert_eq!(matrix_transpose.get_row(0)[0], poly_1);
+        assert_eq!(matrix_transpose.get_row(0)[1], poly_3);
+        assert_eq!(matrix_transpose.get_row(1)[0], poly_2);
+        assert_eq!(matrix_transpose.get_row(1)[1], poly_4);
     }
 }
 

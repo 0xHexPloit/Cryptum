@@ -1,3 +1,5 @@
+use std::ops::Add;
+use sha3::digest::consts::False;
 use crate::algebraic::galois_field::GaloisField;
 use crate::algorithms::kyber::byte_array::ByteArray;
 use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_RANDOM_COIN_LENGTH, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
@@ -119,18 +121,26 @@ impl <const N: usize> KyberCPAPKE<N> {
     }
 
 
-    pub fn generate_matrix_from_seed(&self, seed: &ByteArray) -> MatrixRQ {
+    pub fn generate_matrix_from_seed(&self, seed: &ByteArray, inverse_j_i_pos: bool) -> MatrixRQ {
         let mut matrix_data = vec![];
 
         for i in 0..self.k{
             let mut row_data = vec![];
 
             for j in 0..self.k {
-                let bytes_stream = self.xof(
-                    seed,
-                    j,
-                    i
-                );
+                let bytes_stream = if inverse_j_i_pos {
+                    self.xof(
+                        seed,
+                        i,
+                        j
+                    )
+                } else {
+                    self.xof(
+                        seed,
+                        j,
+                        i
+                    )
+                };
                 let poly = Self::parse(bytes_stream);
                 row_data.push(poly);
             }
@@ -195,12 +205,17 @@ impl <const N: usize> KyberCPAPKE<N> {
         coefficients.into()
     }
 
+
+    fn generate_random_poly(&self, sigma: &ByteArray, upper_n: u8, eta: u8) -> PolyRQ {
+        let bytes_arr = self.prf(sigma, upper_n, 64 * eta as usize);
+        self.cbd_eta(&bytes_arr, eta)
+    }
+
     fn generate_random_vec(&self, sigma: &ByteArray, upper_n: &mut u8, eta: u8) -> VectorRQ {
         let mut vector_data = Vec::with_capacity(self.k as usize);
 
         for _ in 0..self.k {
-            let bytes_arr = self.prf(sigma, *upper_n, 64 * self.eta_1 as usize);
-            let poly = self.cbd_eta(&bytes_arr, eta);
+            let poly = self.generate_random_poly(sigma, *upper_n, eta);
             vector_data.push(poly);
             *upper_n += 1;
         }
@@ -213,7 +228,7 @@ impl <const N: usize> KyberCPAPKE<N> {
         let (rho, sigma) = self.g(d);
 
         // Generating the A hat matrix
-        let a_hat = self.generate_matrix_from_seed(&rho);
+        let a_hat = self.generate_matrix_from_seed(&rho, false);
 
         // // Generating s and e
         let mut upper_n = 0;
@@ -237,7 +252,7 @@ impl <const N: usize> KyberCPAPKE<N> {
         (12 * self.k as usize * KYBER_N_VALUE / 8) + 32
     }
 
-    fn decode_vec(&self, public_key: ByteArray, l_value: u8) -> VectorRQ {
+    fn decode_vec(&self, public_key: &ByteArray, l_value: u8) -> VectorRQ {
         let mut polynomials = vec![];
         let bytes = public_key.get_bytes();
 
@@ -274,7 +289,19 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         let mut upper_n = 0;
 
-        let t_hat = self.decode_vec(public_key, 12);
+        let t_hat = self.decode_vec(&public_key, 12);
+        let rho = public_key.slice(public_key_length - 32);
+
+        let a_hat = self.generate_matrix_from_seed(&rho, true);
+
+        let r = self.generate_random_vec(&random_coin, &mut upper_n, self.eta_1);
+        let e_1 = self.generate_random_vec(&random_coin, &mut upper_n, self.eta_2);
+        let e_2 = self.generate_random_poly(&random_coin, upper_n, self.eta_2);
+
+        let r_hat = r.to_ntt();
+
+        let u: VectorRQ = (a_hat.transpose().multiply_vec(&r_hat)).inverse_ntt() + e_1;
+
 
         ByteArray::random(1)
     }
@@ -306,7 +333,7 @@ mod tests {
     fn test_generate_random_matrix_from_seed() {
         let seed = ByteArray::random(32);
         let kyber=  KyberCPAPKE512::init();
-        let _ = kyber.generate_matrix_from_seed(&seed);
+        let _ = kyber.generate_matrix_from_seed(&seed, false);
     }
 
     #[test]
