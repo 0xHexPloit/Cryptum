@@ -1,12 +1,13 @@
 use crate::algebraic::galois_field::GaloisField;
 use crate::algorithms::kyber::byte_array::ByteArray;
-use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
-use crate::algorithms::kyber::encoder::Encoder;
+use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_RANDOM_COIN_LENGTH, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
+use crate::algorithms::kyber::encoder::{Encoder};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::matrix::MatrixRQ;
 use crate::algorithms::kyber::ntt::NTT;
 
 use crate::algorithms::kyber::polynomial::PolyRQ;
+use crate::algorithms::kyber::utils::decode_l;
 use crate::algorithms::kyber::vector::VectorRQ;
 use crate::utils::hash::{sha_512, shake_128, shake_256};
 
@@ -231,6 +232,53 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         (public_key, private_key)
     }
+
+    fn get_public_key_length(&self) -> usize {
+        (12 * self.k as usize * KYBER_N_VALUE / 8) + 32
+    }
+
+    fn decode_vec(&self, public_key: ByteArray, l_value: u8) -> VectorRQ {
+        let mut polynomials = vec![];
+        let bytes = public_key.get_bytes();
+
+        for chunk in bytes.chunks_exact(32 * l_value as usize) {
+            let sub_bytes_array = ByteArray::from(chunk);
+            let polynomial = decode_l(sub_bytes_array, l_value);
+            polynomials.push(polynomial);
+        }
+
+        polynomials.into()
+    }
+
+    pub fn encryption(&self, public_key: ByteArray, message: ByteArray, random_coin: ByteArray) -> ByteArray {
+        // Checking the length of the public key
+        let public_key_length = public_key.length();
+
+        if public_key_length != self.get_public_key_length() {
+            panic!("Invalid length for public key !")
+        }
+
+        // Checking length for message
+        let message_length = message.length();
+
+        if message_length != KYBER_MESSAGE_LENGTH {
+            panic!("Invalid length for message ! Expected 32 found {}.", message_length);
+        }
+
+        // Checking length for random coin
+        let random_coin_length = random_coin.length();
+
+        if random_coin_length != KYBER_RANDOM_COIN_LENGTH {
+            panic!("Invalid length for random coin ! Expected 32 found {}.", random_coin_length);
+        }
+
+        let mut upper_n = 0;
+
+        let t_hat = self.decode_vec(public_key, 12);
+
+        ByteArray::random(1)
+    }
+
 }
 
 pub type KyberCPAPKE512 = KyberCPAPKE<512>;
@@ -241,7 +289,7 @@ pub type KyberCPAPKE1024 = KyberCPAPKE<1024>;
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
-    use crate::algorithms::kyber::constants::KYBER_N_VALUE_IN_BYTES;
+    use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
     use crate::algorithms::kyber::cpapke::{KyberCPAPKE512};
     use crate::algorithms::kyber::byte_array::ByteArray;
 
@@ -292,5 +340,52 @@ mod tests {
         assert_eq!(public_key.length(), expected_length_public_key);
         assert_eq!(private_key.length(), expected_length_private_key)
 
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_failed_encryption_invalid_length_for_public_key() {
+        let public_key = ByteArray::random(2);
+        let message = ByteArray::random(2);
+        let random_coin = ByteArray::random(2);
+
+        let kyber = KyberCPAPKE512::init();
+        let _ = kyber.encryption(public_key, message, random_coin);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_failed_encryption_invalid_length_for_message() {
+        let kyber = KyberCPAPKE512::init();
+        let public_key_length = kyber.get_public_key_length();
+        let public_key = ByteArray::random(public_key_length);
+        let message = ByteArray::random(2);
+        let random_coin = ByteArray::random(2);
+
+        let _ = kyber.encryption(public_key, message, random_coin);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_failed_encryption_invalid_length_for_random_coin() {
+        let kyber = KyberCPAPKE512::init();
+        let public_key_length = kyber.get_public_key_length();
+        let public_key = ByteArray::random(public_key_length);
+        let message = ByteArray::random(KYBER_MESSAGE_LENGTH);
+        let random_coin = ByteArray::random(2);
+
+        let _ = kyber.encryption(public_key, message, random_coin);
+    }
+
+
+    #[test]
+    fn test_encryption() {
+        let kyber = KyberCPAPKE512::init();
+        let public_key_length = kyber.get_public_key_length();
+        let public_key = ByteArray::random(public_key_length);
+        let message = ByteArray::random(KYBER_MESSAGE_LENGTH);
+        let random_coin = ByteArray::random(KYBER_RANDOM_COIN_LENGTH);
+
+        let _ = kyber.encryption(public_key, message, random_coin);
     }
 }

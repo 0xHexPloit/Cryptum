@@ -1,7 +1,7 @@
 use crate::algebraic::polynomial::RingElement;
 use crate::algebraic::vector::Vector;
 use crate::algorithms::kyber::byte_array::ByteArray;
-use crate::algorithms::kyber::encoder::{Encoder};
+use crate::algorithms::kyber::encoder::Encoder;
 use crate::algorithms::kyber::ntt::NTT;
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
@@ -45,7 +45,6 @@ impl Encoder for VectorRQ {
         bytes
     }
 }
-
 
 impl VectorRQ {
     pub fn dot_ntt(&self, other: &Self) -> PolyRQ {

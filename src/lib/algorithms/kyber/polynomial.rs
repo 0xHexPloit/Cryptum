@@ -3,7 +3,7 @@ use crate::algebraic::polynomial::{Polynomial, RingElement};
 use crate::algorithms::kyber::byte_array::ByteArray;
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE};
-use crate::algorithms::kyber::encoder::{Encoder};
+use crate::algorithms::kyber::encoder::Encoder;
 use crate::algorithms::kyber::ntt::{br7, NTT, ntt_inv_rec, ntt_rec, ZETAS_256};
 use crate::algorithms::kyber::utils::poly_coefficients_to_bits;
 
@@ -70,8 +70,6 @@ impl Encoder for PolyRQ {
         ByteArray::from_bits(bits)
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
