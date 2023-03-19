@@ -2,7 +2,7 @@ use std::cmp::max;
 
 pub fn byte_to_bits(byte_value: u8, bits_arr: &mut [u8; 8]) {
     for i in 0..8 {
-        bits_arr[7 - i] = (byte_value >> i) & 0x1
+        bits_arr[i] = (byte_value >> i) & 0x1
     }
 }
 

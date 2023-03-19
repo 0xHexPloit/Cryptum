@@ -9,6 +9,7 @@ pub trait RingElement {
     fn mul(&self, other: &Self) -> Self;
     fn remainder(&self, divisor: &Self) -> Self;
     fn add(&self, other: &Self) -> Self;
+    fn sub(&self, other: &Self) -> Self;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -195,6 +196,22 @@ impl <C, const N: usize> RingElement for Polynomial<C, N> where C: GaloisField +
 
         for i in 0..=max_degree {
             coefficients[i] = self.coefficients[i].add(&other.coefficients[i]);
+        }
+
+        coefficients.into()
+    }
+
+    fn sub(&self, other: &Self) -> Self {
+        let mut coefficients = [C::default(); N];
+
+        if self.degree.is_none() && other.degree.is_none() {
+            return Polynomial::zero();
+        }
+
+        let max_degree = max(self.degree.unwrap_or(0), other.degree.unwrap_or(0));
+
+        for i in 0..=max_degree {
+            coefficients[i] = self.coefficients[i].sub(&other.coefficients[i]);
         }
 
         coefficients.into()
@@ -391,5 +408,22 @@ mod tests {
         assert_eq!(out_poly.degree, Some(expected_degree));
         assert_eq!(out_poly[0], 2.into());
         assert_eq!(out_poly[1], 2.into());
+    }
+
+    #[test]
+    fn test_polynomial_substraction() {
+        let f_poly = Poly::zero();
+        let g_poly = Poly::from_degrees(
+            &[0, 1],
+            &[1.into(), 2.into()]
+        );
+
+        let sub_poly = f_poly.sub(&g_poly);
+
+        let expected_degree = 1;
+
+        assert_eq!(sub_poly.degree(), Some(expected_degree));
+        assert_eq!(sub_poly[0], 6.into());
+        assert_eq!(sub_poly[1], 5.into())
     }
  }

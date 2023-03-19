@@ -1,8 +1,8 @@
 use crate::algebraic::polynomial::RingElement;
 use crate::algebraic::vector::Vector;
 use crate::algorithms::kyber::byte_array::ByteArray;
-use crate::algorithms::kyber::compress::Compress;
-use crate::algorithms::kyber::encoder::Encoder;
+use crate::algorithms::kyber::compress::{Compress, Decompress};
+use crate::algorithms::kyber::encoder::{Decoder, Encoder};
 use crate::algorithms::kyber::ntt::NTT;
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
@@ -47,6 +47,27 @@ impl Encoder for VectorRQ {
     }
 }
 
+impl Decoder for VectorRQ {
+    fn decode(bytes: ByteArray, l_value: u8) -> Self {
+        // Checking length of bytes
+        let bytes_length = bytes.length();
+
+        if bytes_length % (32 * l_value as usize) != 0 {
+            panic!("bytes is not a multiple of {}", 32 * l_value)
+        }
+
+        let mut polynomials = Vec::with_capacity(bytes_length / (32 * l_value as usize));
+
+        for chunk in bytes.get_bytes().chunks_exact(32 * l_value as usize) {
+            polynomials.push(PolyRQ::decode(chunk.into(), l_value))
+        }
+
+
+        polynomials.into()
+    }
+}
+
+
 impl Compress for VectorRQ {
     fn compress(self, d_value: u32) -> Self {
         let mut polynomials = Vec::with_capacity(self.get_n());
@@ -56,6 +77,19 @@ impl Compress for VectorRQ {
             polynomials.push(poly.clone().compress(d_value))
         }
 
+
+        polynomials.into()
+    }
+}
+
+impl Decompress for VectorRQ {
+    fn decompress(self, d_value: u32) -> Self {
+        let mut polynomials = Vec::with_capacity(self.get_n());
+
+        for i in 0..self.get_n() {
+            let poly = &self[i];
+            polynomials.push(poly.clone().decompress(d_value))
+        }
 
         polynomials.into()
     }

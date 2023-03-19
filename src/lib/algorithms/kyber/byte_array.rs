@@ -1,7 +1,7 @@
 use rand::{RngCore, thread_rng};
 use crate::utils::bits::{bits_to_byte, byte_to_bits};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ByteArray {
     values: Vec<u8>
 }
@@ -66,6 +66,11 @@ impl ByteArray {
     pub fn slice(&self, start_pos: usize) -> ByteArray {
         let (_, slice) = self.values.split_at(start_pos);
         slice.into()
+    }
+
+    pub fn split_at(&self, pos: usize) -> (Self, Self) {
+        let (bytes_1, bytes_2) = self.values.split_at(pos);
+        (bytes_1.into(), bytes_2.into())
     }
 
 }
