@@ -1,7 +1,9 @@
 use std::ops::Add;
 use sha3::digest::consts::False;
 use crate::algebraic::galois_field::GaloisField;
+use crate::algebraic::polynomial::RingElement;
 use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::kyber::compress::{Compress, Decompress};
 use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_RANDOM_COIN_LENGTH, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
 use crate::algorithms::kyber::encoder::{Encoder};
 use crate::algorithms::kyber::galois_field::GF3329;
@@ -151,11 +153,6 @@ impl <const N: usize> KyberCPAPKE<N> {
     }
 
 
-    fn encode_12(&self, vec: VectorRQ) -> ByteArray {
-        vec.encode(12)
-    }
-
-
     /// This function corresponds to the PRF function as defined in p5 of the article.
     ///
     /// Input:
@@ -241,8 +238,8 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         let t_hat = a_hat.multiply_vec(&s_hat) + e_hat;
 
-        let public_key = ByteArray::concat(&[&self.encode_12(t_hat), &rho]);
-        let private_key = self.encode_12(s_hat);
+        let public_key = ByteArray::concat(&[&t_hat.encode(12), &rho]);
+        let private_key = s_hat.encode(12);
 
 
         (public_key, private_key)
@@ -302,9 +299,21 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         let u: VectorRQ = (a_hat.transpose().multiply_vec(&r_hat)).inverse_ntt() + e_1;
 
+        let m = decode_l(message, 1).decompress(1);
 
-        ByteArray::random(1)
+        let v = (t_hat.dot_ntt(&r_hat))
+            .inverse_ntt()
+            .add(&e_2)
+            .add(&m);
+
+
+        let c_1 = u.compress(self.d_u as u32).encode(self.d_u);
+        let c_2 = v.compress(self.d_v as u32).encode(self.d_v);
+
+        ByteArray::concat(&[&c_1, &c_2])
     }
+
+
 
 }
 
@@ -316,7 +325,7 @@ pub type KyberCPAPKE1024 = KyberCPAPKE<1024>;
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
-    use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
+    use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
     use crate::algorithms::kyber::cpapke::{KyberCPAPKE512};
     use crate::algorithms::kyber::byte_array::ByteArray;
 
@@ -404,7 +413,6 @@ mod tests {
         let _ = kyber.encryption(public_key, message, random_coin);
     }
 
-
     #[test]
     fn test_encryption() {
         let kyber = KyberCPAPKE512::init();
@@ -413,6 +421,10 @@ mod tests {
         let message = ByteArray::random(KYBER_MESSAGE_LENGTH);
         let random_coin = ByteArray::random(KYBER_RANDOM_COIN_LENGTH);
 
-        let _ = kyber.encryption(public_key, message, random_coin);
+        let expected_length = (kyber.d_u * kyber.k as usize * KYBER_N_VALUE) as usize / 8 + (kyber.d_v * KYBER_N_VALUE)  as usize / 8;
+
+        let encryption = kyber.encryption(public_key, message, random_coin);
+
+        assert_eq!(encryption.length(), expected_length);
     }
 }
