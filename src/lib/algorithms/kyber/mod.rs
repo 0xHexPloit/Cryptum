@@ -1,5 +1,5 @@
 mod cpapke;
-pub mod constants;
+mod constants;
 mod galois_field;
 mod polynomial;
 mod matrix;
@@ -10,4 +10,5 @@ mod encoder;
 mod utils;
 mod compress;
 
+pub use cpapke::{KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKE1024};
 

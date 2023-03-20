@@ -1,1 +1,1 @@
-mod kyber;
+pub mod kyber;
