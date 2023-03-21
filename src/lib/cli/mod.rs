@@ -8,7 +8,7 @@ pub type CryptumResult<T> = Result<T, Box<dyn Error>>;
 #[structopt(
     author = "Hugo PEYRON",
     version = "0.1.0",
-    about = "the stupid content tracker"
+    about = "A CLI program that allows either encrypting or signing data using lattice-based cryptography."
 )]
 pub enum CryptumArgs {
     KYBER(kyber::KyberArgs)

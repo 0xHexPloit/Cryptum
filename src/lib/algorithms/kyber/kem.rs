@@ -243,8 +243,10 @@ pub type Kyber1024 = Kyber<1024>;
 
 #[cfg(test)]
 mod tests {
+    use crate::algorithms::byte_array::ByteArray;
     use crate::algorithms::kyber::byte_array::ByteArray;
     use crate::algorithms::kyber::kem::Kyber512;
+    use crate::algorithms::kyber::KyberAlgorithm;
 
     #[test]
     fn test_keygen() {
