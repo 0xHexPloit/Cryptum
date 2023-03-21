@@ -1,6 +1,6 @@
 use std::cmp::{max};
 use std::ops::{Index};
-use crate::algebraic::galois_field::GaloisField;
+use crate::algorithms::algebraic::galois_field::GaloisField;
 
 pub trait RingElement {
     fn degree(&self) -> Option<usize>;

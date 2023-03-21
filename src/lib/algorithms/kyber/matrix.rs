@@ -1,4 +1,4 @@
-use crate::algebraic::matrix::Matrix;
+use crate::algorithms::algebraic::matrix::Matrix;
 use crate::algorithms::kyber::polynomial::PolyRQ;
 use crate::algorithms::kyber::vector::VectorRQ;
 

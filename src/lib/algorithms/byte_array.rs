@@ -1,5 +1,5 @@
 use rand::{RngCore, thread_rng};
-use crate::utils::bits::{bits_to_byte, byte_to_bits};
+use crate::algorithms::utils::bits::{bits_to_byte, byte_to_bits};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ByteArray {
@@ -77,6 +77,10 @@ impl ByteArray {
         String::from_utf8(self.values).unwrap()
     }
 
+    pub fn to_hex(self) -> String {
+        hex::encode(self.values)
+    }
+
 }
 
 impl From<&[u8]> for ByteArray {
@@ -105,7 +109,7 @@ impl From<Vec<u8>> for ByteArray {
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::kyber::byte_array::ByteArray;
+    use crate::algorithms::byte_array::ByteArray;
 
     #[test]
     fn test_random_byte_array_creation() {

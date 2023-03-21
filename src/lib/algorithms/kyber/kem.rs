@@ -1,106 +1,18 @@
-use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::constants::KYBER_N_VALUE;
 use crate::algorithms::kyber::cpapke::{KyberCPAPKE, KyberCPAPKE1024, KyberCPAPKE512, KyberCPAPKE768};
-use crate::utils::hash::{sha3_256, sha3_512, shake_256};
+use crate::algorithms::utils::hash::{sha3_256, sha3_512, shake_256};
+
+pub trait KyberAlgorithm {
+    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray);
+    fn encrypt(&self, public_key: ByteArray, seed: ByteArray, shared_secret_key_size: u8) -> (ByteArray, ByteArray);
+    fn decrypt(&self, ciphertext: ByteArray, private_key: ByteArray, shared_secret_key_size: u8) -> ByteArray;
+
+}
 
 pub struct Kyber<const V: usize>(KyberCPAPKE<V>);
 
-
-impl Kyber<512> {
-    pub fn init() -> Self {
-        Self (KyberCPAPKE512::init())
-    }
-}
-
-impl Kyber<768> {
-    pub fn init() -> Self {
-        Self(KyberCPAPKE768::init())
-    }
-}
-
-impl Kyber<1024> {
-    pub fn init() -> Self {
-        Self (KyberCPAPKE1024::init())
-    }
-}
-
-impl <const V: usize> Kyber<V> {
-    /// This function corresponds to the H function that one can observe in the following algorithms:
-    /// Algorithm 7 (Kyber.CCAKEM.KeyGen()), Algorithm 8 (Kyber.CCAKEM.Enc(pk)), Algorithm 9
-    /// (Kyber.CCAKEM.Dec(c, sk)). According to the authors, the function is a wrapper around the
-    /// Sha3-256 hash function.
-    ///
-    /// Input:
-    ///     - data: A byte array
-    /// Output:
-    ///     A byte array of length 32 bytes
-    fn h(&self, data: &ByteArray) -> ByteArray {
-        sha3_256(data.get_bytes()).into()
-    }
-
-    /// This function corresponds to the KeyGen function (Algorithm 7)
-    ///
-    /// Input: None
-    /// Output:
-    ///     A bytes array of length (12·k·n)/8 + 32
-    ///     A bytes array of length (24·k·n)/8 + 96
-    pub fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray){
-        // Checking length of seed
-        if seed.length() != 64 {
-            panic!("Invalid length for seed. Should be 64 but found {}", seed.length());
-        }
-        let (seed_1, seed_2) = seed.split_at(32);
-
-        let (public_key, private_key_prime) = self.0.keygen(seed_2);
-        let hash = self.h(&public_key);
-
-        let secret_key = ByteArray::concat(
-            &[&private_key_prime, &public_key, &hash, &seed_1]
-        );
-
-        (public_key, secret_key)
-    }
-
-    fn get_public_key_length(&self) -> usize {
-        let k = self.0.get_k();
-
-        (12 * k as usize * KYBER_N_VALUE) / 8 + 32
-    }
-
-    fn get_private_key_length(&self) -> usize {
-        let k = self.0.get_k();
-
-        (24 * k as usize * KYBER_N_VALUE) / 8 + 96
-    }
-
-
-    /// This function corresponds to the KDF function that one can observe in both Algorithm
-    /// 7 (Enc) and Algorithm 8 (Dec). According to the authors of the article, it simply
-    /// represents a wrapper around the shake256 extendable-output function.
-    ///
-    /// Input:
-    ///     data: A bytes array to be hashed
-    ///     output_size: The number of bytes to generate
-    /// Output:
-    ///     A bytes array of length output_size
-    fn kdf(&self, data: ByteArray, output_size: u8) -> ByteArray {
-        shake_256(data.get_bytes(), output_size as usize).into()
-    }
-
-    /// This function corresponds to the G function that one can observe in both Algorithm 7 (Enc)
-    /// and Algorithm 8
-    ///
-    /// Input:
-    ///     data: A bytes array
-    /// Output:
-    ///     A tuple of bytes array each of them is of length 32
-    ///
-    fn g(&self, data: &ByteArray) -> (ByteArray, ByteArray) {
-        let hash: ByteArray = sha3_512(data.get_bytes()).into();
-        hash.split_at(32)
-    }
-
-
+impl <const V: usize> KyberAlgorithm for Kyber<V> {
     /// This function correspond to the Enc function (Algorithm 8).
     ///
     /// Input:
@@ -108,7 +20,7 @@ impl <const V: usize> Kyber<V> {
     ///     seed: A bytes array filled with random values. It should be of length 32
     ///     shared_secret_key_size: The size of the shared secret key to generate in bytes
     ///
-    pub fn encrypt(&self, public_key: ByteArray, seed: ByteArray, shared_secret_key_size: u8) -> (ByteArray, ByteArray) {
+    fn encrypt(&self, public_key: ByteArray, seed: ByteArray, shared_secret_key_size: u8) -> (ByteArray, ByteArray) {
         // Checking the length of the seed
         if seed.length() != 32 {
             panic!("Invalid length for seed ! It should be of length 32 found {}", seed.length())
@@ -147,6 +59,28 @@ impl <const V: usize> Kyber<V> {
         (ciphertext, shared_secret)
     }
 
+    /// This function corresponds to the KeyGen function (Algorithm 7)
+    ///
+    /// Input: None
+    /// Output:
+    ///     A bytes array of length (12·k·n)/8 + 32
+    ///     A bytes array of length (24·k·n)/8 + 96
+    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray){
+        // Checking length of seed
+        if seed.length() != 64 {
+            panic!("Invalid length for seed. Should be 64 but found {}", seed.length());
+        }
+        let (seed_1, seed_2) = seed.split_at(32);
+
+        let (public_key, private_key_prime) = self.0.keygen(seed_2);
+        let hash = self.h(&public_key);
+
+        let secret_key = ByteArray::concat(
+            &[&private_key_prime, &public_key, &hash, &seed_1]
+        );
+
+        (public_key, secret_key)
+    }
 
     /// This function corresponds to the Dec function (Algorithm 8)
     ///
@@ -156,7 +90,7 @@ impl <const V: usize> Kyber<V> {
     ///     shared_secret_key_size: The size of the shared secret key to generate in bytes.
     /// Output:
     ///     A shared secret that can be used to encrypt data
-    pub fn decrypt(&self, ciphertext: ByteArray, private_key: ByteArray, shared_secret_key_size: u8) -> ByteArray {
+    fn decrypt(&self, ciphertext: ByteArray, private_key: ByteArray, shared_secret_key_size: u8) -> ByteArray {
         // Checking the length of ciphertext
         let expected_ciphertext_length = self.0.get_ciphertext_length();
 
@@ -225,6 +159,81 @@ impl <const V: usize> Kyber<V> {
             )
         }
     }
+
+}
+
+impl Kyber<512> {
+    pub fn init() -> Self {
+        Self (KyberCPAPKE512::init())
+    }
+}
+
+impl Kyber<768> {
+    pub fn init() -> Self {
+        Self(KyberCPAPKE768::init())
+    }
+}
+
+impl Kyber<1024> {
+    pub fn init() -> Self {
+        Self (KyberCPAPKE1024::init())
+    }
+}
+
+impl <const V: usize> Kyber<V> {
+    /// This function corresponds to the H function that one can observe in the following algorithms:
+    /// Algorithm 7 (Kyber.CCAKEM.KeyGen()), Algorithm 8 (Kyber.CCAKEM.Enc(pk)), Algorithm 9
+    /// (Kyber.CCAKEM.Dec(c, sk)). According to the authors, the function is a wrapper around the
+    /// Sha3-256 hash function.
+    ///
+    /// Input:
+    ///     - data: A byte array
+    /// Output:
+    ///     A byte array of length 32 bytes
+    fn h(&self, data: &ByteArray) -> ByteArray {
+        sha3_256(data.get_bytes()).into()
+    }
+
+
+
+    fn get_public_key_length(&self) -> usize {
+        let k = self.0.get_k();
+
+        (12 * k as usize * KYBER_N_VALUE) / 8 + 32
+    }
+
+    fn get_private_key_length(&self) -> usize {
+        let k = self.0.get_k();
+
+        (24 * k as usize * KYBER_N_VALUE) / 8 + 96
+    }
+
+
+    /// This function corresponds to the KDF function that one can observe in both Algorithm
+    /// 7 (Enc) and Algorithm 8 (Dec). According to the authors of the article, it simply
+    /// represents a wrapper around the shake256 extendable-output function.
+    ///
+    /// Input:
+    ///     data: A bytes array to be hashed
+    ///     output_size: The number of bytes to generate
+    /// Output:
+    ///     A bytes array of length output_size
+    fn kdf(&self, data: ByteArray, output_size: u8) -> ByteArray {
+        shake_256(data.get_bytes(), output_size as usize).into()
+    }
+
+    /// This function corresponds to the G function that one can observe in both Algorithm 7 (Enc)
+    /// and Algorithm 8
+    ///
+    /// Input:
+    ///     data: A bytes array
+    /// Output:
+    ///     A tuple of bytes array each of them is of length 32
+    ///
+    fn g(&self, data: &ByteArray) -> (ByteArray, ByteArray) {
+        let hash: ByteArray = sha3_512(data.get_bytes()).into();
+        hash.split_at(32)
+    }
 }
 
 pub type Kyber512 = Kyber<512>;
@@ -278,5 +287,4 @@ mod tests {
 
         assert_eq!(secret_key, secret_key_prime)
     }
-
 }

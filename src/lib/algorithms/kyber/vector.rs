@@ -1,6 +1,6 @@
-use crate::algebraic::polynomial::RingElement;
-use crate::algebraic::vector::Vector;
-use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::algebraic::polynomial::RingElement;
+use crate::algorithms::algebraic::vector::Vector;
+use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::compress::{Compress, Decompress};
 use crate::algorithms::kyber::encoder::{Decoder, Encoder};
 use crate::algorithms::kyber::ntt::NTT;

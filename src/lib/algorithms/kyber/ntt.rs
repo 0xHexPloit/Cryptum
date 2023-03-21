@@ -1,4 +1,4 @@
-use crate::algebraic::galois_field::GaloisField;
+use crate::algorithms::algebraic::galois_field::GaloisField;
 use crate::algorithms::kyber::galois_field::GF3329;
 
 

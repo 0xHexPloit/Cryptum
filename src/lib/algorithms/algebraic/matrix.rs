@@ -1,4 +1,4 @@
-use crate::algebraic::polynomial::RingElement;
+use crate::algorithms::algebraic::polynomial::RingElement;
 
 type Row<P> = Vec<P>;
 type MatrixContent<P> = Vec<Row<P>>;
@@ -77,9 +77,8 @@ impl <P: RingElement + Clone> Matrix<P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::algebraic::galois_field::GaloisFieldCore;
-    use crate::algebraic::matrix::Matrix;
-    use crate::algebraic::polynomial::{Polynomial, RingElement};
+    use crate::algorithms::algebraic::galois_field::GaloisFieldCore;
+    use crate::algorithms::algebraic::polynomial::Polynomial;
 
     type GF7 = GaloisFieldCore<7>;
     type Poly7 = Polynomial<GF7, 2>;

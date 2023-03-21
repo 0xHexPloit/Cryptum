@@ -1,6 +1,6 @@
-use crate::algebraic::galois_field::GaloisField;
-use crate::algebraic::polynomial::{Polynomial, RingElement};
-use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::algebraic::galois_field::GaloisField;
+use crate::algorithms::algebraic::polynomial::{Polynomial, RingElement};
+use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::compress::{Compress, Decompress};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE};

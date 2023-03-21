@@ -1,8 +1,8 @@
 use std::ops::Add;
 use sha3::digest::consts::False;
-use crate::algebraic::galois_field::GaloisField;
-use crate::algebraic::polynomial::RingElement;
-use crate::algorithms::kyber::byte_array::ByteArray;
+use crate::algorithms::algebraic::galois_field::GaloisField;
+use crate::algorithms::algebraic::polynomial::RingElement;
+use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::compress::{Compress, Decompress};
 use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_Q_VALUE, KYBER_RANDOM_COIN_LENGTH, KYBER_XOF_DEFAULT_BYTES_STREAM_SIZE};
 use crate::algorithms::kyber::encoder::{Decoder, Encoder};
@@ -12,7 +12,7 @@ use crate::algorithms::kyber::ntt::NTT;
 
 use crate::algorithms::kyber::polynomial::PolyRQ;
 use crate::algorithms::kyber::vector::VectorRQ;
-use crate::utils::hash::{sha3_512, shake_128, shake_256};
+use crate::algorithms::utils::hash::{sha3_512, shake_128, shake_256};
 
 pub struct KyberCPAPKE<const V: usize> {
     k: u8,

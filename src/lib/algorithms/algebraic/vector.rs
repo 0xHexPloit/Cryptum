@@ -1,5 +1,5 @@
 use std::ops::{Add, Index};
-use crate::algebraic::polynomial::RingElement;
+use crate::algorithms::algebraic::polynomial::RingElement;
 
 #[derive(Debug)]
 pub struct Vector<C: RingElement> {
