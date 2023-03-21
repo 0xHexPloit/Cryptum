@@ -5,7 +5,7 @@ This project consists of a CLI program written in Rust that allows either encryp
 
 # Usage
 
-Until the creation of an x86_64 binary, you can interact with the program using cargo using the following commands:
+Until the creation of an x86_64 binary, you can interact with the program using the following commands:
 
 ```
 cargo run -- kyber kem keygen
