@@ -65,6 +65,12 @@ impl <const N: usize> KyberCPAPKE<N> {
         self.k
     }
 
+    pub fn get_public_key_length(&self) -> usize {
+        (12 * self.k as usize * KYBER_N_VALUE / 8) + 32
+    }
+
+
+
 
     fn g(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
         let hash = sha3_512(seed.get_bytes());
@@ -243,10 +249,6 @@ impl <const N: usize> KyberCPAPKE<N> {
         (public_key, private_key)
     }
 
-    fn get_public_key_length(&self) -> usize {
-        (12 * self.k as usize * KYBER_N_VALUE / 8) + 32
-    }
-
     fn decode_vec(&self, public_key: &ByteArray, l_value: u8) -> VectorRQ {
         let mut polynomials = vec![];
         let bytes = public_key.get_bytes();
@@ -320,23 +322,24 @@ impl <const N: usize> KyberCPAPKE<N> {
         ByteArray::concat(&[&c_1, &c_2])
     }
 
-    fn get_secret_key_length(&self) -> usize {
+    pub fn get_private_key_length(&self) -> usize {
         (12 * self.k as usize * KYBER_N_VALUE) / 8
     }
 
-    fn get_ciphertext_length(&self) -> usize {
+    pub fn get_ciphertext_length(&self) -> usize {
         (self.d_u * self.k as usize * KYBER_N_VALUE) / 8 + (self.d_v * KYBER_N_VALUE) / 8
     }
 
-    pub fn decrypt(&self, secret_key: ByteArray, ciphertext: ByteArray) -> ByteArray {
-        // Checking length of secret_key
-        let secret_key_length = secret_key.length();
+    pub fn decrypt(&self, private_key: ByteArray, ciphertext: ByteArray) -> ByteArray {
+        // Checking length of private
+        let private_key_length = private_key.length();
+        let expected_private_key_length = self.get_private_key_length();
 
-        if secret_key_length != self.get_secret_key_length() {
+        if private_key_length !=  expected_private_key_length {
             panic!(
                 "Invalid length for secret_key ! Expected {} found {}",
-                self.get_secret_key_length(),
-                secret_key_length
+                expected_private_key_length,
+                private_key_length
             )
         }
 
@@ -357,7 +360,7 @@ impl <const N: usize> KyberCPAPKE<N> {
 
         let u = VectorRQ::decode(c_1, self.d_u as u8).decompress(self.d_u as u32);
         let v = PolyRQ::decode(c_2, self.d_v as u8).decompress(self.d_v as u32);
-        let s_hat = VectorRQ::decode(secret_key, 12);
+        let s_hat = VectorRQ::decode(private_key, 12);
 
         let mut poly = (s_hat.dot_ntt(&u.to_ntt())).inverse_ntt();
         poly = v.sub(&poly);
@@ -516,7 +519,7 @@ mod tests {
     #[should_panic]
     fn test_decrypt_should_panic_invalid_length_ciphertext() {
         let kyber = KyberCPAPKE512::init();
-        let secret_key_length = kyber.get_secret_key_length();
+        let secret_key_length = kyber.get_private_key_length();
         let secret_key = ByteArray::random(secret_key_length);
         let ciphertext = ByteArray::random(2);
 
@@ -526,7 +529,7 @@ mod tests {
     #[test]
     fn test_decrypt_length() {
         let kyber = KyberCPAPKE512::init();
-        let secret_key = ByteArray::random(kyber.get_secret_key_length());
+        let secret_key = ByteArray::random(kyber.get_private_key_length());
 
         let ciphertext = ByteArray::random(kyber.get_ciphertext_length());
 
