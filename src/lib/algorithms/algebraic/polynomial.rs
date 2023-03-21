@@ -232,8 +232,8 @@ impl <C, const N: usize>Index<usize> for Polynomial<C, N> where  C: GaloisField 
 
 #[cfg(test)]
 mod tests {
-    use crate::algebraic::galois_field::{GaloisField, GaloisFieldCore};
-    use crate::algebraic::polynomial::{Polynomial, RingElement};
+    use crate::algorithms::algebraic::galois_field::{GaloisField, GaloisFieldCore};
+    use crate::algorithms::algebraic::polynomial::{Polynomial, RingElement};
 
     const RING_ORDER: usize = 4;
     type GF7 = GaloisFieldCore<7>;

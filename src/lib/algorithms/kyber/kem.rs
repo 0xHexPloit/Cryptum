@@ -1,19 +1,19 @@
 use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::constants::KYBER_N_VALUE;
-use crate::algorithms::kyber::cpapke::{KyberCPAPKE, KyberCPAPKE1024, KyberCPAPKE512, KyberCPAPKE768};
+use crate::algorithms::kyber::cpapke::{KyberPKE, KyberCPAPKE1024, KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKECore};
 use crate::algorithms::utils::hash::{sha3_256, sha3_512, shake_256};
 
-pub trait KyberAlgorithm {
+pub trait KyberKEM {
     fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray);
     fn encrypt(&self, public_key: ByteArray, seed: ByteArray, shared_secret_key_size: u8) -> (ByteArray, ByteArray);
     fn decrypt(&self, ciphertext: ByteArray, private_key: ByteArray, shared_secret_key_size: u8) -> ByteArray;
 
 }
 
-pub struct Kyber<const V: usize>(KyberCPAPKE<V>);
+pub struct KyberKEMCore<const V: usize>(KyberCPAPKECore<V>);
 
 
-impl <const V: usize> KyberAlgorithm for Kyber<V> {
+impl <const V: usize> KyberKEM for KyberKEMCore<V> {
     /// This function corresponds to the KeyGen function (Algorithm 7)
     ///
     /// Input: None
@@ -163,25 +163,25 @@ impl <const V: usize> KyberAlgorithm for Kyber<V> {
 
 }
 
-impl Kyber<512> {
+impl KyberKEMCore<512> {
     pub fn init() -> Self {
         Self (KyberCPAPKE512::init())
     }
 }
 
-impl Kyber<768> {
+impl KyberKEMCore<768> {
     pub fn init() -> Self {
         Self(KyberCPAPKE768::init())
     }
 }
 
-impl Kyber<1024> {
+impl KyberKEMCore<1024> {
     pub fn init() -> Self {
         Self (KyberCPAPKE1024::init())
     }
 }
 
-impl <const V: usize> Kyber<V> {
+impl <const V: usize> KyberKEMCore<V> {
     /// This function corresponds to the H function that one can observe in the following algorithms:
     /// Algorithm 7 (Kyber.CCAKEM.KeyGen()), Algorithm 8 (Kyber.CCAKEM.Enc(pk)), Algorithm 9
     /// (Kyber.CCAKEM.Dec(c, sk)). According to the authors, the function is a wrapper around the
@@ -237,21 +237,19 @@ impl <const V: usize> Kyber<V> {
     }
 }
 
-pub type Kyber512 = Kyber<512>;
-pub type Kyber768 = Kyber<768>;
-pub type Kyber1024 = Kyber<1024>;
+pub type KyberKEM512 = KyberKEMCore<512>;
+pub type KyberKEM768 = KyberKEMCore<768>;
+pub type KyberKEM1024 = KyberKEMCore<1024>;
 
 #[cfg(test)]
 mod tests {
     use crate::algorithms::byte_array::ByteArray;
-    use crate::algorithms::kyber::byte_array::ByteArray;
-    use crate::algorithms::kyber::kem::Kyber512;
-    use crate::algorithms::kyber::KyberAlgorithm;
+    use crate::algorithms::kyber::kem::{KyberKEM512, KyberKEM};
 
     #[test]
     fn test_keygen() {
         let seed = ByteArray::from([0u8; 64].as_slice());
-        let kyber = Kyber512::init();
+        let kyber = KyberKEM512::init();
 
         let (public_key, secret_key) = kyber.keygen(seed);
 
@@ -265,7 +263,7 @@ mod tests {
     #[test]
     fn test_encrypt() {
         let seed = ByteArray::from([0u8; 64].as_slice());
-        let kyber = Kyber512::init();
+        let kyber = KyberKEM512::init();
         let (public_key, _) = kyber.keygen(seed);
 
         let seed = ByteArray::from([0u8; 32].as_slice());
@@ -281,7 +279,7 @@ mod tests {
     #[test]
     fn test_decrypt() {
         let seed = ByteArray::from([0u8; 64].as_slice());
-        let kyber = Kyber512::init();
+        let kyber = KyberKEM512::init();
         let (public_key, private_key) = kyber.keygen(seed);
         let seed = ByteArray::from([0u8; 32].as_slice());
         let shared_secret_key_size = 32;

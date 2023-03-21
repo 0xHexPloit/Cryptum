@@ -10,6 +10,8 @@ mod compress;
 mod kem;
 mod utils;
 
-pub use kem::{Kyber512, Kyber768, Kyber1024, KyberAlgorithm};
-pub use cpapke::{KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKE1024};
+pub use kem::{KyberKEM512, KyberKEM768, KyberKEM1024, KyberKEM};
+pub use cpapke::{KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKE1024, KyberPKE};
+pub use utils::get_random_coin;
+pub use constants::KYBER_MESSAGE_LENGTH;
 

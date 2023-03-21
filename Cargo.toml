@@ -14,3 +14,4 @@ hex-literal = "0.3.4"
 rand = "0.8.5"
 sha3 = "0.10.6"
 structopt = { version = "0.3.26", features = ["color"] }
+thiserror = "1.0.40"

@@ -12,7 +12,14 @@ use crate::algorithms::kyber::polynomial::PolyRQ;
 use crate::algorithms::kyber::vector::VectorRQ;
 use crate::algorithms::utils::hash::{sha3_512, shake_128, shake_256};
 
-pub struct KyberCPAPKE<const V: usize> {
+pub trait KyberPKE {
+    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray);
+    fn encrypt(&self, public_key: ByteArray, message: ByteArray, random_coin: ByteArray) -> ByteArray;
+    fn decrypt(&self, private_key: ByteArray, ciphertext: ByteArray) -> ByteArray;
+}
+
+
+pub struct KyberCPAPKECore<const V: usize> {
     k: u8,
     eta_1: u8,
     eta_2: u8,
@@ -21,7 +28,7 @@ pub struct KyberCPAPKE<const V: usize> {
 }
 
 
-impl KyberCPAPKE<512> {
+impl KyberCPAPKECore<512> {
     pub fn init() -> Self {
         Self {
             k: 2,
@@ -33,7 +40,7 @@ impl KyberCPAPKE<512> {
     }
 }
 
-impl KyberCPAPKE<768> {
+impl KyberCPAPKECore<768> {
     pub fn init() -> Self {
         Self {
             k: 3,
@@ -45,7 +52,7 @@ impl KyberCPAPKE<768> {
     }
 }
 
-impl KyberCPAPKE<1024> {
+impl KyberCPAPKECore<1024> {
     pub fn init() -> Self {
         Self {
             k: 4,
@@ -58,7 +65,7 @@ impl KyberCPAPKE<1024> {
 }
 
 
-impl <const N: usize> KyberCPAPKE<N> {
+impl <const N: usize> KyberCPAPKECore<N> {
     pub fn get_k(&self) -> u8 {
         self.k
     }
@@ -66,9 +73,6 @@ impl <const N: usize> KyberCPAPKE<N> {
     pub fn get_public_key_length(&self) -> usize {
         (12 * self.k as usize * KYBER_N_VALUE / 8) + 32
     }
-
-
-
 
     fn g(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
         let hash = sha3_512(seed.get_bytes());
@@ -218,7 +222,39 @@ impl <const N: usize> KyberCPAPKE<N> {
         vector_data.into()
     }
 
-    pub fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
+    fn decode_vec(&self, public_key: &ByteArray, l_value: u8) -> VectorRQ {
+        let mut polynomials = vec![];
+        let bytes = public_key.get_bytes();
+
+        for chunk in bytes.chunks_exact(32 * l_value as usize) {
+            let sub_bytes_array = ByteArray::from(chunk);
+            let polynomial = PolyRQ::decode(sub_bytes_array, l_value);
+            polynomials.push(polynomial);
+        }
+
+        polynomials.into()
+    }
+
+    pub fn get_private_key_length(&self) -> usize {
+        (12 * self.k as usize * KYBER_N_VALUE) / 8
+    }
+
+    pub fn get_ciphertext_length(&self) -> usize {
+        (self.d_u * self.k as usize * KYBER_N_VALUE) / 8 + (self.d_v * KYBER_N_VALUE) / 8
+    }
+}
+
+impl <const V: usize>KyberPKE for KyberCPAPKECore<V> {
+    /// This function corresponds to the KeyGen function (Algorithm 4). We only modify it to take
+    /// a seed as an input to perform some unit test. In the paper, the seed is computed inside
+    /// the function.
+    ///
+    /// Input:
+    ///     seed: A 32-bytes array
+    /// Output:
+    ///     - An array of bytes corresponding to the public key
+    ///     - An array of bytes corresponding to the private key
+    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
         // Checking length of seed
         if seed.length() != 32 {
             panic!("Invalid for seed ! Should be 32 found {}", seed.length());
@@ -247,24 +283,15 @@ impl <const N: usize> KyberCPAPKE<N> {
         (public_key, private_key)
     }
 
-    fn decode_vec(&self, public_key: &ByteArray, l_value: u8) -> VectorRQ {
-        let mut polynomials = vec![];
-        let bytes = public_key.get_bytes();
-
-        for chunk in bytes.chunks_exact(32 * l_value as usize) {
-            let sub_bytes_array = ByteArray::from(chunk);
-            let polynomial = PolyRQ::decode(sub_bytes_array, l_value);
-            polynomials.push(polynomial);
-        }
-
-        polynomials.into()
-    }
-
-    pub fn get_random_coin() -> ByteArray {
-        ByteArray::random(KYBER_RANDOM_COIN_LENGTH)
-    }
-
-    pub fn encrypt(&self, public_key: ByteArray, message: ByteArray, random_coin: ByteArray) -> ByteArray {
+    /// This function corresponds to the Enc function (Algorithm 5).
+    ///
+    /// Input:
+    ///     public_key: An array of bytes that corresponds to the public key
+    ///     message: A 32-bytes array to cipher
+    ///     random_coin: An array of bytes filled with random values
+    /// Output:
+    ///     An array of bytes corresponding to a ciphertext
+    fn encrypt(&self, public_key: ByteArray, message: ByteArray, random_coin: ByteArray) -> ByteArray {
         // Checking the length of the public key
         let public_key_length = public_key.length();
 
@@ -320,15 +347,14 @@ impl <const N: usize> KyberCPAPKE<N> {
         ByteArray::concat(&[&c_1, &c_2])
     }
 
-    pub fn get_private_key_length(&self) -> usize {
-        (12 * self.k as usize * KYBER_N_VALUE) / 8
-    }
-
-    pub fn get_ciphertext_length(&self) -> usize {
-        (self.d_u * self.k as usize * KYBER_N_VALUE) / 8 + (self.d_v * KYBER_N_VALUE) / 8
-    }
-
-    pub fn decrypt(&self, private_key: ByteArray, ciphertext: ByteArray) -> ByteArray {
+    /// This function corresponds to the Dec function (Algorithm 6).
+    ///
+    /// Input:
+    ///     private_key: An array of bytes that corresponds to a private key generate by the KeyGen function.
+    ///     ciphertext: An array of bytes to decipher.
+    /// Output:
+    ///     An array of bytes that represents the original message that has been ciphered previously.
+    fn decrypt(&self, private_key: ByteArray, ciphertext: ByteArray) -> ByteArray {
         // Checking length of private
         let private_key_length = private_key.length();
         let expected_private_key_length = self.get_private_key_length();
@@ -367,17 +393,19 @@ impl <const N: usize> KyberCPAPKE<N> {
     }
 }
 
-pub type KyberCPAPKE512 = KyberCPAPKE<512>;
-pub type KyberCPAPKE768 = KyberCPAPKE<768>;
-pub type KyberCPAPKE1024 = KyberCPAPKE<1024>;
+
+pub type KyberCPAPKE512 = KyberCPAPKECore<512>;
+pub type KyberCPAPKE768 = KyberCPAPKECore<768>;
+pub type KyberCPAPKE1024 = KyberCPAPKECore<1024>;
 
 
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
+    use crate::algorithms::byte_array::ByteArray;
     use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
     use crate::algorithms::kyber::cpapke::{KyberCPAPKE512};
-    use crate::algorithms::kyber::byte_array::ByteArray;
+    use crate::algorithms::kyber::KyberPKE;
 
     #[test]
     fn test_g() {

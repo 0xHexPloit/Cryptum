@@ -1,6 +1,5 @@
 use structopt::StructOpt;
-use cryptum::cli::CryptumResult;
-use cryptum::CryptumArgs;
+use cryptum::{CryptumArgs, CryptumResult};
 use cryptum::handler::kyber_handler;
 
 fn main() -> CryptumResult<()> {

@@ -74,7 +74,7 @@ impl <const P: usize>GaloisField for GaloisFieldCore<P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::algebraic::galois_field::GaloisFieldCore;
+    use crate::algorithms::algebraic::galois_field::GaloisFieldCore;
 
     type GF2 = GaloisFieldCore<2>;
 

@@ -28,7 +28,7 @@ pub fn bits_to_byte(bits: &[u8]) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::bits::{bits_to_byte, byte_to_bits};
+    use crate::algorithms::utils::bits::{bits_to_byte, byte_to_bits};
 
     #[test]
     fn test_conversion_byte_to_bits() {

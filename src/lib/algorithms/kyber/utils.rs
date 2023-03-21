@@ -1,4 +1,5 @@
-use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE};
+use crate::algorithms::byte_array::ByteArray;
+use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE, KYBER_RANDOM_COIN_LENGTH};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::polynomial::PolyRQ;
 
@@ -43,6 +44,10 @@ pub fn decompress_d(x: GF3329, d_value: u32) ->  GF3329 {
     GF3329::from(value)
 }
 
+pub fn get_random_coin() -> ByteArray {
+    ByteArray::random(KYBER_RANDOM_COIN_LENGTH)
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -82,7 +87,7 @@ mod tests {
         let input_data = [0, 1, 1];
         let expected_data = [0_u16, 1665, 1665];
 
-        for i in 0..KYBER_N_VALUE {
+        for i in 0..input_data.len() {
             let output = decompress_d(input_data[i].into(), 1);
             assert_eq!(output, GF3329::from(expected_data[i] as usize))
         }

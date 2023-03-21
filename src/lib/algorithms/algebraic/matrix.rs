@@ -78,7 +78,8 @@ impl <P: RingElement + Clone> Matrix<P> {
 #[cfg(test)]
 mod tests {
     use crate::algorithms::algebraic::galois_field::GaloisFieldCore;
-    use crate::algorithms::algebraic::polynomial::Polynomial;
+    use crate::algorithms::algebraic::matrix::Matrix;
+    use crate::algorithms::algebraic::polynomial::{Polynomial, RingElement};
 
     type GF7 = GaloisFieldCore<7>;
     type Poly7 = Polynomial<GF7, 2>;
