@@ -1,8 +1,15 @@
 use std::io::Read;
-use sha3::{Sha3_512, Shake128, Shake256};
+use sha3::{Sha3_256, Sha3_512, Shake128, Shake256};
 use sha3::digest::{Update, ExtendableOutput, FixedOutput};
 
-pub fn sha_512(data: &[u8]) -> Vec<u8> {
+
+pub fn sha3_256(data: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha3_256::default();
+    hasher.update(data);
+    hasher.finalize_fixed().to_vec()
+}
+
+pub fn sha3_512(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha3_512::default();
     hasher.update(data);
     hasher.finalize_fixed().to_vec()
@@ -30,12 +37,19 @@ pub fn shake_256(data: &[u8], length: usize) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
-    use crate::utils::hash::{sha_512, shake_128, shake_256};
+    use crate::utils::hash::{sha3_256, sha3_512, shake_128, shake_256};
 
     #[test]
-    fn test_sha_512() {
+    fn test_sha3_256() {
         let data = b"telecom".as_slice();
-        let output = sha_512(data);
+        let output = sha3_256(data);
+        assert_eq!(output, hex!("86cbdabeba46c2f05e460f7183d20a09cb01c354fcb81d29ab54773e4c7cd490"))
+    }
+
+    #[test]
+    fn test_sha3_512() {
+        let data = b"telecom".as_slice();
+        let output = sha3_512(data);
         assert_eq!(output, hex!("099fd622c3a5797b980360ab230600ad42ec392d25d68b715827211eca3e2971c9f445e8161ec80dd3c0e4a55d1bb82a5d0da8164b1f8816cbec43cdab8d4e59"))
     }
 

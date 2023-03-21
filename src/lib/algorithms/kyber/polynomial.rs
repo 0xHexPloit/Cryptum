@@ -130,13 +130,16 @@ impl Decompress for PolyRQ {
 
 #[cfg(test)]
 mod tests {
+    use std::os::unix::raw::pid_t;
+    use crate::algorithms::kyber::byte_array::ByteArray;
     use crate::algorithms::kyber::constants::KYBER_N_VALUE;
+    use crate::algorithms::kyber::encoder::Decoder;
     use crate::algorithms::kyber::galois_field::GF3329;
     use crate::algorithms::kyber::ntt::NTT;
     use crate::algorithms::kyber::polynomial::PolyRQ;
 
     #[test]
-    pub fn test_to_ntt() {
+    fn test_to_ntt() {
         let poly = PolyRQ::from_degrees(
             &[0, 1, 2, 128, 210],
             &[1.into(), 2.into(), 3.into(), 9.into(), 10.into()]
@@ -160,7 +163,7 @@ mod tests {
 
 
     #[test]
-    pub fn test_ntt_inversion() {
+    fn test_ntt_inversion() {
         let poly = PolyRQ::from_degrees(
             &[0, 1, 2, 128, 210, 220],
             &[1.into(), 2.into(), 3.into(), 9.into(), 10.into(),7.into()]
@@ -170,4 +173,19 @@ mod tests {
 
         assert_eq!(from_ntt_poly, poly)
     }
+
+
+    #[test]
+    fn test_decode_l() {
+        let data = ByteArray::from([158, 98, 145, 151, 12, 180, 77, 217, 64, 8, 199, 155, 202, 249, 216, 111, 24, 180, 180, 155, 165, 178, 160, 71, 129, 219, 113, 153, 237, 59, 158, 78].as_slice());
+        let poly = PolyRQ::decode(data, 1);
+
+        let expected_data = [0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0];
+
+        for i in 0..KYBER_N_VALUE {
+            let coefficient = poly[i];
+            assert_eq!(coefficient, GF3329::from(expected_data[i]))
+        }
+    }
+
 }

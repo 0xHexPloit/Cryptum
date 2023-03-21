@@ -43,16 +43,15 @@ pub fn compress_d(x: GF3329, d_value: u32) ->  GF3329 {
 pub fn decompress_d(x: GF3329, d_value: u32) ->  GF3329 {
     let two_pow_d = 2_usize.pow(d_value);
     let value = round((KYBER_Q_VALUE as f64 / two_pow_d as f64) * x.into_inner() as f64);
-
-
     GF3329::from(value)
 }
 
 
-
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::kyber::utils::round;
+    use crate::algorithms::kyber::constants::KYBER_N_VALUE;
+    use crate::algorithms::kyber::galois_field::GF3329;
+    use crate::algorithms::kyber::utils::{decompress_d, round};
 
     #[test]
     fn test_round_should_return_2() {
@@ -79,6 +78,17 @@ mod tests {
         let output = round(tested_value);
 
         assert_eq!(output, expected_value);
+    }
+
+    #[test]
+    fn test_decompress_1() {
+        let input_data = [0, 1, 1];
+        let expected_data = [0_u16, 1665, 1665];
+
+        for i in 0..KYBER_N_VALUE {
+            let output = decompress_d(input_data[i].into(), 1);
+            assert_eq!(output, GF3329::from(expected_data[i] as usize))
+        }
     }
 }
 

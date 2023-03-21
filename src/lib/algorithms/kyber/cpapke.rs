@@ -12,7 +12,7 @@ use crate::algorithms::kyber::ntt::NTT;
 
 use crate::algorithms::kyber::polynomial::PolyRQ;
 use crate::algorithms::kyber::vector::VectorRQ;
-use crate::utils::hash::{sha_512, shake_128, shake_256};
+use crate::utils::hash::{sha3_512, shake_128, shake_256};
 
 pub struct KyberCPAPKE<const V: usize> {
     k: u8,
@@ -61,8 +61,13 @@ impl KyberCPAPKE<1024> {
 
 
 impl <const N: usize> KyberCPAPKE<N> {
+    pub fn get_k(&self) -> u8 {
+        self.k
+    }
+
+
     fn g(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
-        let hash = sha_512(seed.get_bytes());
+        let hash = sha3_512(seed.get_bytes());
         let data = hash.split_at(KYBER_N_VALUE_IN_BYTES);
         (ByteArray::from(data.0), ByteArray::from(data.1))
     }
@@ -209,17 +214,13 @@ impl <const N: usize> KyberCPAPKE<N> {
         vector_data.into()
     }
 
-    pub fn keygen(&self, seed: Option<ByteArray>) -> (ByteArray, ByteArray) {
-        let (rho, sigma) = self.g(if seed.is_none() {
-            ByteArray::random(KYBER_N_VALUE_IN_BYTES)
-        } else {
-            // Checking length seed
-            let seed = seed.unwrap();
-            if seed.length() != KYBER_N_VALUE_IN_BYTES {
-                panic!("Invalid length for seed!")
-            }
-            seed
-        });
+    pub fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray) {
+        // Checking length of seed
+        if seed.length() != 32 {
+            panic!("Invalid for seed ! Should be 32 found {}", seed.length());
+        }
+
+        let (rho, sigma) = self.g(seed);
 
         // Generating the A hat matrix
         let a_hat = self.generate_matrix_from_seed(&rho);
@@ -267,8 +268,13 @@ impl <const N: usize> KyberCPAPKE<N> {
         // Checking the length of the public key
         let public_key_length = public_key.length();
 
-        if public_key_length != self.get_public_key_length() {
-            panic!("Invalid length for public key !")
+        let expected_public_key_length = self.get_public_key_length();
+        if public_key_length !=  expected_public_key_length {
+            panic!(
+                "Invalid length for public key ! Expected {} found {}",
+                expected_public_key_length,
+                public_key.length()
+            )
         }
 
         // Checking length for message
@@ -418,7 +424,8 @@ mod tests {
     #[test]
     fn test_keygen_length() {
         let kyber=  KyberCPAPKE512::init();
-        let (public_key, private_key) = kyber.keygen(None);
+        let seed = ByteArray::random(32);
+        let (public_key, private_key) = kyber.keygen(seed);
 
         let expected_length_public_key = 800;
         let expected_length_private_key = 768;
@@ -432,7 +439,7 @@ mod tests {
     fn test_keygen() {
         let kyber = KyberCPAPKE512::init();
         let seed = ByteArray::from([0u8; KYBER_N_VALUE_IN_BYTES].as_slice());
-        let (public_key, private_key) = kyber.keygen(Some(seed));
+        let (public_key, private_key) = kyber.keygen(seed);
 
         let expected_public_key = [156, 229, 198, 126, 252, 156, 51, 103, 168, 60, 124, 66, 176, 161, 41, 55, 201, 64, 207, 113, 26, 162, 167, 127, 148, 56, 146, 141, 105, 80, 234, 96, 7, 192, 185, 2, 255, 25, 119, 123, 32, 147, 18, 102, 6, 119, 0, 185, 105, 160, 36, 146, 236, 192, 102, 115, 206, 246, 225, 206, 54, 119, 58, 75, 219, 149, 56, 213, 52, 88, 38, 24, 222, 210, 121, 226, 153, 161, 32, 35, 24, 19, 140, 168, 213, 73, 182, 198, 8, 129, 238, 210, 183, 74, 184, 132, 185, 48, 116, 104, 83, 89, 96, 53, 39, 236, 99, 139, 171, 177, 61, 152, 242, 167, 62, 42, 54, 42, 86, 98, 163, 81, 83, 141, 83, 87, 236, 124, 32, 182, 103, 64, 128, 199, 106, 83, 101, 171, 159, 72, 63, 120, 108, 78, 44, 219, 202, 35, 240, 170, 10, 100, 88, 158, 184, 110, 170, 7, 55, 113, 240, 77, 57, 128, 142, 144, 68, 55, 104, 170, 13, 9, 34, 181, 223, 161, 84, 231, 231, 9, 61, 52, 34, 56, 20, 186, 161, 182, 109, 174, 54, 83, 206, 162, 21, 179, 172, 125, 108, 101, 184, 44, 49, 174, 223, 192, 62, 62, 246, 29, 210, 147, 21, 181, 193, 28, 16, 165, 185, 223, 19, 146, 23, 160, 194, 62, 244, 191, 129, 65, 14, 191, 22, 15, 91, 186, 77, 60, 103, 24, 179, 86, 177, 133, 101, 90, 190, 209, 66, 163, 196, 153, 5, 226, 40, 157, 212, 202, 5, 160, 58, 5, 11, 160, 8, 211, 82, 189, 34, 186, 235, 137, 120, 78, 252, 41, 1, 12, 162, 120, 74, 108, 33, 203, 70, 147, 121, 0, 153, 219, 158, 202, 147, 37, 81, 105, 149, 49, 100, 21, 136, 140, 53, 168, 52, 97, 187, 90, 134, 180, 37, 23, 178, 177, 86, 210, 133, 152, 201, 91, 117, 78, 27, 55, 79, 64, 160, 174, 83, 33, 105, 114, 118, 136, 103, 205, 69, 167, 202, 214, 213, 167, 56, 43, 42, 93, 124, 22, 148, 73, 110, 5, 72, 173, 244, 87, 27, 75, 92, 95, 93, 33, 147, 159, 188, 155, 242, 105, 205, 175, 83, 190, 95, 9, 190, 97, 147, 174, 186, 89, 31, 79, 193, 185, 67, 151, 121, 141, 185, 66, 231, 58, 117, 89, 0, 23, 190, 75, 70, 193, 233, 77, 208, 251, 27, 138, 148, 118, 242, 138, 207, 11, 33, 26, 193, 202, 128, 44, 168, 114, 62, 122, 111, 97, 241, 52, 60, 23, 69, 158, 85, 178, 115, 44, 206, 246, 60, 128, 190, 67, 89, 247, 246, 21, 249, 12, 46, 140, 108, 8, 35, 133, 174, 183, 21, 24, 137, 42, 28, 135, 203, 63, 54, 102, 129, 71, 217, 25, 193, 6, 107, 170, 105, 182, 227, 249, 153, 249, 38, 120, 13, 102, 23, 112, 21, 35, 64, 115, 29, 2, 118, 196, 84, 168, 108, 130, 224, 183, 76, 75, 76, 27, 119, 55, 242, 249, 174, 50, 34, 183, 208, 242, 203, 192, 1, 186, 84, 33, 204, 106, 26, 34, 208, 133, 135, 162, 88, 206, 66, 188, 105, 161, 114, 68, 118, 165, 167, 150, 185, 127, 161, 92, 133, 156, 124, 96, 106, 227, 44, 129, 188, 153, 57, 105, 153, 211, 69, 123, 180, 35, 149, 99, 42, 182, 153, 83, 64, 181, 20, 128, 15, 88, 46, 86, 149, 52, 208, 26, 39, 66, 220, 47, 10, 53, 191, 173, 97, 134, 56, 181, 155, 207, 195, 59, 180, 194, 77, 53, 231, 101, 98, 252, 75, 220, 68, 180, 22, 65, 49, 59, 12, 95, 202, 146, 108, 84, 211, 198, 66, 229, 42, 98, 6, 56, 103, 200, 186, 58, 10, 121, 118, 19, 94, 254, 59, 108, 73, 234, 38, 93, 85, 162, 209, 213, 103, 127, 73, 176, 158, 186, 56, 35, 74, 190, 56, 179, 149, 39, 168, 23, 66, 20, 78, 147, 67, 130, 178, 117, 100, 41, 42, 36, 214, 165, 56, 145, 107, 33, 72, 210, 63, 120, 231, 10, 89, 233, 128, 150, 201, 18, 3, 247, 121, 101, 33, 31, 46, 234, 47, 198, 252, 31, 89, 99, 78, 36, 107, 12, 158, 36, 118, 156, 229, 169, 79, 194, 124, 51, 213, 86, 80, 2, 143, 149, 27, 42, 48, 117, 201, 139, 135, 135, 70, 224, 61, 201, 28, 191, 221, 151, 37, 236, 9, 180, 77, 185, 15, 12, 102, 43, 165, 9, 110, 157, 171, 7, 106, 123, 123, 26, 202, 180, 235, 43, 121, 91, 101, 49, 173, 86, 195, 92, 171, 80, 99, 185, 231, 234, 86, 131, 20, 236, 129, 196, 11, 165, 119, 170, 230, 48, 222, 144, 32, 4, 0, 158, 136, 241, 141, 165];
         let expected_public_key = ByteArray::from(expected_public_key.as_slice());
@@ -533,7 +540,7 @@ mod tests {
         let kyber = KyberCPAPKE512::init();
         let seed = [0_u8; KYBER_N_VALUE_IN_BYTES];
 
-        let (public_key, private_key) = kyber.keygen(Some(seed.as_slice().into()));
+        let (public_key, private_key) = kyber.keygen(seed.as_slice().into());
 
         let random_coin = [0_u8; KYBER_RANDOM_COIN_LENGTH];
 

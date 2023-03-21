@@ -9,6 +9,7 @@ mod vector;
 mod encoder;
 mod utils;
 mod compress;
+mod kem;
 
 pub use cpapke::{KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKE1024};
 
