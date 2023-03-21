@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::path::PathBuf;
 use structopt::{StructOpt};
 pub mod kyber;
 

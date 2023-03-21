@@ -1,5 +1,3 @@
-use std::ops::Add;
-use sha3::digest::consts::False;
 use crate::algorithms::algebraic::galois_field::GaloisField;
 use crate::algorithms::algebraic::polynomial::RingElement;
 use crate::algorithms::byte_array::ByteArray;

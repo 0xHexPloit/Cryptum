@@ -1,4 +1,3 @@
-use std::ops::Rem;
 use crate::algorithms::kyber::constants::{KYBER_N_VALUE, KYBER_Q_VALUE};
 use crate::algorithms::kyber::galois_field::GF3329;
 use crate::algorithms::kyber::polynomial::PolyRQ;

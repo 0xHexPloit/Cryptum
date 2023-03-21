@@ -81,6 +81,11 @@ impl ByteArray {
         hex::encode(self.values)
     }
 
+    pub fn from_hex(data: String) -> Self {
+        let data = hex::decode(data).expect("An error occurred while parsing data");
+        data.into()
+    }
+
 }
 
 impl From<&[u8]> for ByteArray {

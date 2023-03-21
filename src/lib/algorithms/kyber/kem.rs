@@ -12,7 +12,31 @@ pub trait KyberAlgorithm {
 
 pub struct Kyber<const V: usize>(KyberCPAPKE<V>);
 
+
 impl <const V: usize> KyberAlgorithm for Kyber<V> {
+    /// This function corresponds to the KeyGen function (Algorithm 7)
+    ///
+    /// Input: None
+    /// Output:
+    ///     A bytes array of length (12·k·n)/8 + 32
+    ///     A bytes array of length (24·k·n)/8 + 96
+    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray){
+        // Checking length of seed
+        if seed.length() != 64 {
+            panic!("Invalid length for seed. Should be 64 but found {}", seed.length());
+        }
+        let (seed_1, seed_2) = seed.split_at(32);
+
+        let (public_key, private_key_prime) = self.0.keygen(seed_2);
+        let hash = self.h(&public_key);
+
+        let secret_key = ByteArray::concat(
+            &[&private_key_prime, &public_key, &hash, &seed_1]
+        );
+
+        (public_key, secret_key)
+    }
+
     /// This function correspond to the Enc function (Algorithm 8).
     ///
     /// Input:
@@ -57,29 +81,6 @@ impl <const V: usize> KyberAlgorithm for Kyber<V> {
         );
 
         (ciphertext, shared_secret)
-    }
-
-    /// This function corresponds to the KeyGen function (Algorithm 7)
-    ///
-    /// Input: None
-    /// Output:
-    ///     A bytes array of length (12·k·n)/8 + 32
-    ///     A bytes array of length (24·k·n)/8 + 96
-    fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray){
-        // Checking length of seed
-        if seed.length() != 64 {
-            panic!("Invalid length for seed. Should be 64 but found {}", seed.length());
-        }
-        let (seed_1, seed_2) = seed.split_at(32);
-
-        let (public_key, private_key_prime) = self.0.keygen(seed_2);
-        let hash = self.h(&public_key);
-
-        let secret_key = ByteArray::concat(
-            &[&private_key_prime, &public_key, &hash, &seed_1]
-        );
-
-        (public_key, secret_key)
     }
 
     /// This function corresponds to the Dec function (Algorithm 8)
