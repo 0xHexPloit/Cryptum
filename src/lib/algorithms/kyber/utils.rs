@@ -51,7 +51,6 @@ pub fn get_random_coin() -> ByteArray {
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::kyber::constants::KYBER_N_VALUE;
     use crate::algorithms::kyber::galois_field::GF3329;
     use crate::algorithms::kyber::utils::{decompress_d, round};
 

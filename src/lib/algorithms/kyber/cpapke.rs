@@ -403,7 +403,7 @@ pub type KyberCPAPKE1024 = KyberCPAPKECore<1024>;
 mod tests {
     use hex_literal::hex;
     use crate::algorithms::byte_array::ByteArray;
-    use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
+    use crate::algorithms::kyber::constants::{KYBER_MESSAGE_LENGTH, KYBER_N_VALUE_IN_BYTES, KYBER_RANDOM_COIN_LENGTH};
     use crate::algorithms::kyber::cpapke::{KyberCPAPKE512};
     use crate::algorithms::kyber::KyberPKE;
 

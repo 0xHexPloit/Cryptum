@@ -74,10 +74,6 @@ impl ByteArray {
         (bytes_1.into(), bytes_2.into())
     }
 
-    pub fn to_utf8_lossy(self) -> String {
-        String::from_utf8_lossy(self.values.as_slice()).into()
-    }
-
     pub fn to_hex(self) -> String {
         hex::encode(self.values)
     }

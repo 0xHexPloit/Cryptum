@@ -91,7 +91,7 @@ pub struct KyberKEMEncryptArgs {
     pub out_ciphertext: PathBuf,
 
     /// The path where to save the generated shared key
-    #[structopt(long, default_value="kyber_kem_shared_key.txt", parse(from_os_str))]
+    #[structopt(long, default_value="kyber_shared_key.txt", parse(from_os_str))]
     pub out_shared: PathBuf,
 
     /// The size of the shared key (in bytes)
@@ -99,7 +99,7 @@ pub struct KyberKEMEncryptArgs {
     pub key_size: u8,
 
     /// The path where is situated the public key
-    #[structopt(long, default_value="kyber_kem_key.pub", parse(from_os_str))]
+    #[structopt(long, default_value="kyber_key.pub", parse(from_os_str))]
     pub in_pubkey: PathBuf
 }
 
@@ -111,7 +111,7 @@ pub struct KyberKEMDecryptArgs {
     pub spec: u16,
 
     /// The path where to save the generated shared key
-    #[structopt(long, default_value="kyber_kem_shared_key.txt")]
+    #[structopt(long, default_value="kyber_shared_key.txt")]
     pub out_shared: PathBuf,
 
     /// The size of the shared key (in bytes)
@@ -123,7 +123,7 @@ pub struct KyberKEMDecryptArgs {
     pub in_ciphertext: PathBuf,
 
     /// The path where is situated the public key
-    #[structopt(long, default_value="kyber_kem_key.priv", parse(from_os_str))]
+    #[structopt(long, default_value="kyber_key.priv", parse(from_os_str))]
     pub in_privkey: PathBuf
 }
 
