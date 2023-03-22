@@ -1,4 +1,4 @@
-![badge](https://github.com/0xHexPloit/Cryptum/actions/workflows/rust/badge.svg)
+![badge](https://github.com/0xHexPloit/Cryptum/actions/workflows/rust.yml/badge.svg)
 
 # Cryptum
 
@@ -74,6 +74,6 @@ Normally you will not have to change the default values specified for each comma
 
 Using this command should output something similar to the figure above
 
-![help](https://github.com/0xHexPloit/Cryptum/blob/pke/assets/decrypt_help.png?raw=true)
+![help](https://github.com/0xHexPloit/Cryptum/blob/main/assets/decrypt_help.png?raw=true)
 
 
