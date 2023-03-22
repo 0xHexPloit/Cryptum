@@ -1,3 +1,5 @@
+![badge](https://github.com/0xHexPloit/Cryptum/actions/workflows/rust/badge.svg)
+
 # Cryptum
 
 **WARNING: This project was developed as part of a cryptographic project for the advanced cryptography course given at Télécom Paris. It is therefore not intended to be used in production, in particular because it has not been tested to determine whether it runs in constant time.**
