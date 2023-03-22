@@ -26,8 +26,8 @@ Under IND-CPA-secure Kyber PKE, two communicating parties generate their key pai
 Algorithm | Input | Output
 --- | :-: | --:
 PKE KeyGen | - | Public Key and Secret Key
-Encapsulation | Public Key, 32-bytes message, and 32-bytes random coin| Cipher Text and SHAKE256 KDF
-Decapsulation | Secret Key and Cipher Text | SHAKE256 KDF
+Encapsulation | Public Key, 32-bytes message, and 32-bytes random coin| Cipher Text
+Decapsulation | Secret Key and Cipher Text | 32-bytes message
 
 Each algorithm can be run using the CLI program with the following commands
 ```
