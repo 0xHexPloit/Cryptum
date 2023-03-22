@@ -37,7 +37,7 @@ pub fn shake_256(data: &[u8], length: usize) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use hex_literal::hex;
-    use crate::utils::hash::{sha3_256, sha3_512, shake_128, shake_256};
+    use crate::algorithms::utils::hash::{sha3_256, sha3_512, shake_128, shake_256};
 
     #[test]
     fn test_sha3_256() {

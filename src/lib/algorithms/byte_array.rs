@@ -1,5 +1,6 @@
 use rand::{RngCore, thread_rng};
 use crate::algorithms::utils::bits::{bits_to_byte, byte_to_bits};
+use crate::CryptumResult;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ByteArray {
@@ -73,17 +74,13 @@ impl ByteArray {
         (bytes_1.into(), bytes_2.into())
     }
 
-    pub fn to_utf8(self) -> String {
-        String::from_utf8(self.values).unwrap()
-    }
-
     pub fn to_hex(self) -> String {
         hex::encode(self.values)
     }
 
-    pub fn from_hex(data: String) -> Self {
-        let data = hex::decode(data).expect("An error occurred while parsing data");
-        data.into()
+    pub fn from_hex(data: String) -> CryptumResult<ByteArray> {
+        let data = hex::decode(data)?;
+        Ok(data.into())
     }
 
 }
@@ -153,7 +150,7 @@ mod tests {
     fn test_to_bits() {
         let data = ByteArray::from([2, 3].as_slice());
         let bits = data.to_bits();
-        assert_eq!(bits, [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1])
+        assert_eq!(bits, [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0])
     }
 
     #[test]

@@ -130,8 +130,7 @@ impl Decompress for PolyRQ {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::raw::pid_t;
-    use crate::algorithms::kyber::byte_array::ByteArray;
+    use crate::algorithms::byte_array::ByteArray;
     use crate::algorithms::kyber::constants::KYBER_N_VALUE;
     use crate::algorithms::kyber::encoder::Decoder;
     use crate::algorithms::kyber::galois_field::GF3329;

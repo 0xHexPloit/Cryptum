@@ -1,8 +1,7 @@
-use std::error::Error;
+
 use structopt::{StructOpt};
 pub mod kyber;
-
-pub type CryptumResult<T> = Result<T, Box<dyn Error>>;
+mod results;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
