@@ -1,6 +1,8 @@
 use assert_cmd::Command;
 use std::error::Error;
 use std::fs;
+use rand::distributions::Alphanumeric;
+use rand::{Rng, thread_rng};
 
 type TestResult = Result<(), Box<dyn Error>>;
 
@@ -11,10 +13,21 @@ const PKE_PRIV_KEY: &str = "tests/inputs/kyber_pke.priv";
 const KEM_PUB_KEY: &str = "tests/inputs/kyber_kem.pub";
 const KEM_PRIV_KEY: &str = "tests/inputs/kyber_kem.priv";
 
-const OUT_CIPHERTEXT: &str = "tests/ciphertext.txt";
-const OUT_SHARED_KEY: &str = "tests/shared_key.txt";
-
 const DEFAULT_KEY_SIZE: usize = 32;
+
+fn generate_test_file_path() -> String {
+    loop {
+        let filename: String = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect();
+
+        if fs::metadata(&filename).is_err() {
+            return format!("tests/{}", filename);
+        }
+    }
+}
 
 
 #[test]
@@ -58,7 +71,7 @@ fn test_pke_keygen() -> TestResult {
     Ok(())
 }
 
-fn encrypt_data() -> TestResult {
+fn encrypt_data(out_ciphertext: &str) -> TestResult {
     let args = &[
         "kyber",
         "pke",
@@ -68,7 +81,7 @@ fn encrypt_data() -> TestResult {
         "--in-pubkey",
         PKE_PUB_KEY,
         "--out-ciphertext",
-        OUT_CIPHERTEXT
+        out_ciphertext
     ];
 
     Command::cargo_bin(PRG)?
@@ -81,12 +94,14 @@ fn encrypt_data() -> TestResult {
 
 #[test]
 fn test_pke_encrypt() -> TestResult {
-    encrypt_data()?;
-    let ciphertext = fs::read_to_string(OUT_CIPHERTEXT)?;
+    let out_ciphertext = generate_test_file_path();
+    encrypt_data(out_ciphertext.as_str())?;
+
+    let ciphertext = fs::read_to_string(out_ciphertext.clone())?;
 
     assert_ne!(ciphertext.len(), 0);
 
-    fs::remove_file(OUT_CIPHERTEXT)?;
+    fs::remove_file(out_ciphertext)?;
 
     Ok(())
 }
@@ -94,13 +109,15 @@ fn test_pke_encrypt() -> TestResult {
 
 #[test]
 fn test_pke_decrypt() -> TestResult {
-    encrypt_data()?;
+    let out_ciphertext = generate_test_file_path();
+
+    encrypt_data(out_ciphertext.as_str())?;
     let args = &[
         "kyber",
         "pke",
         "decrypt",
         "--in-ciphertext",
-        OUT_CIPHERTEXT,
+        out_ciphertext.as_str(),
         "--in-privkey",
         PKE_PRIV_KEY
     ];
@@ -113,48 +130,17 @@ fn test_pke_decrypt() -> TestResult {
         .success()
         .stdout(predicates::str::contains(original_plaintext));
 
-    fs::remove_file(OUT_CIPHERTEXT)?;
+    fs::remove_file(out_ciphertext)?;
 
     Ok(())
 }
-
-#[test]
-fn test_kem_keygen() -> TestResult {
-    let out_pubkey = "tests/kyber_kem.pub";
-    let out_privkey = "tests/kyber_kem.priv";
-
-    let args = &[
-        "kyber",
-        "kem",
-        "keygen",
-        "--out-pubkey",
-        out_pubkey,
-        "--out-privkey",
-        out_privkey
-    ];
-
-    Command::cargo_bin(PRG)?
-        .args(args)
-        .assert()
-        .success();
-
-
-    let pubkey = fs::read_to_string(out_pubkey)?;
-    assert_ne!(pubkey.len(), 0);
-
-    let privkey = fs::read_to_string(out_privkey)?;
-    assert_ne!(privkey.len(), 0);
-
-    fs::remove_file(out_pubkey)?;
-    fs::remove_file(out_privkey)?;
-
-    Ok(())
-}
-
 
 fn generate_kem_ciphertext_shared_key(
-    key_size: usize
+    key_size: usize,
+    out_ciphertext_path: &str,
+    out_shared_key_path: &str
 ) -> TestResult {
+
     let key_size = format!("{}", key_size);
     let args = &[
         "kyber",
@@ -165,9 +151,9 @@ fn generate_kem_ciphertext_shared_key(
         "--key-size",
         key_size.as_str(),
         "--out-ciphertext",
-        OUT_CIPHERTEXT,
+        out_ciphertext_path,
         "--out-shared",
-        OUT_SHARED_KEY
+        out_shared_key_path
     ];
     Command::cargo_bin(PRG)?
         .args(args)
@@ -176,40 +162,83 @@ fn generate_kem_ciphertext_shared_key(
     Ok(())
 }
 
-fn delete_kem_files() -> TestResult {
-    fs::remove_file(OUT_CIPHERTEXT)?;
-    fs::remove_file(OUT_SHARED_KEY)?;
+#[test]
+fn test_kem_keygen() -> TestResult {
+    let out_pubkey_path = generate_test_file_path();
+    let out_privkey_path = generate_test_file_path();
+
+    let args = &[
+        "kyber",
+        "kem",
+        "keygen",
+        "--out-pubkey",
+        out_pubkey_path.as_str(),
+        "--out-privkey",
+        out_privkey_path.as_str()
+    ];
+
+    Command::cargo_bin(PRG)?
+        .args(args)
+        .assert()
+        .success();
+
+
+    let pubkey = fs::read_to_string(out_pubkey_path.clone())?;
+    assert_ne!(pubkey.len(), 0);
+
+    let privkey = fs::read_to_string(out_pubkey_path.clone())?;
+    assert_ne!(privkey.len(), 0);
+
+    fs::remove_file(out_pubkey_path)?;
+    fs::remove_file(out_privkey_path)?;
+
     Ok(())
 }
 
 
 #[test]
 fn test_kem_encrypt() -> TestResult {
-    generate_kem_ciphertext_shared_key(DEFAULT_KEY_SIZE)?;
+    let out_ciphertext_path = generate_test_file_path();
+    let out_shared_key_path = generate_test_file_path();
 
-    let ciphertext = fs::read_to_string(OUT_CIPHERTEXT)?;
+
+    generate_kem_ciphertext_shared_key(
+        DEFAULT_KEY_SIZE,
+        out_ciphertext_path.as_str(),
+        out_shared_key_path.as_str()
+    )?;
+
+    let ciphertext = fs::read_to_string(out_ciphertext_path.clone())?;
     assert_ne!(ciphertext.len(), 0);
 
-    let shared_key = fs::read_to_string(OUT_SHARED_KEY)?;
+    let shared_key = fs::read_to_string(out_shared_key_path.clone())?;
     assert_ne!(shared_key.len(), 0);
 
-    delete_kem_files()?;
+    fs::remove_file(out_ciphertext_path)?;
+    fs::remove_file(out_shared_key_path)?;
 
     Ok(())
 }
 
 #[test]
 fn test_kem_decrypt() -> TestResult {
-    generate_kem_ciphertext_shared_key(DEFAULT_KEY_SIZE)?;
+    let out_ciphertext_path = generate_test_file_path();
+    let out_shared_key_path = generate_test_file_path();
+
+    generate_kem_ciphertext_shared_key(
+        DEFAULT_KEY_SIZE,
+        out_ciphertext_path.as_str(),
+        out_shared_key_path.as_str()
+    )?;
     let keysize = format!("{}", DEFAULT_KEY_SIZE);
-    let shared_key = fs::read_to_string(OUT_SHARED_KEY)?;
+    let shared_key = fs::read_to_string(out_shared_key_path.clone())?;
 
     let args = &[
         "kyber",
         "kem",
         "decrypt",
         "--in-ciphertext",
-        OUT_CIPHERTEXT,
+        out_ciphertext_path.as_str(),
         "--key-size",
         keysize.as_str(),
         "--in-privkey",
@@ -221,19 +250,28 @@ fn test_kem_decrypt() -> TestResult {
         .success()
         .stdout(predicates::str::contains(shared_key));
 
-    delete_kem_files()?;
+    fs::remove_file(out_ciphertext_path)?;
+    fs::remove_file(out_shared_key_path)?;
 
     Ok(())
 }
 
 #[test]
 fn test_generate_shared_key_different_size() -> TestResult {
-    generate_kem_ciphertext_shared_key(DEFAULT_KEY_SIZE * 2)?;
+    let out_ciphertext_path = generate_test_file_path();
+    let out_shared_key_path = generate_test_file_path();
 
-    let shared_key = fs::read_to_string(OUT_SHARED_KEY)?;
+    generate_kem_ciphertext_shared_key(
+        DEFAULT_KEY_SIZE * 2,
+        out_ciphertext_path.as_str(),
+        out_shared_key_path.as_str()
+    )?;
+
+    let shared_key = fs::read_to_string(out_shared_key_path.clone())?;
     assert_eq!(shared_key.len(), DEFAULT_KEY_SIZE * 2 * 2);
 
-    delete_kem_files()?;
+    fs::remove_file(out_ciphertext_path)?;
+    fs::remove_file(out_shared_key_path)?;
 
     Ok(())
 }
