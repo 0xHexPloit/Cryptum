@@ -7,7 +7,12 @@ fn main() -> CryptumResult<()> {
 
     match args {
         CryptumArgs::KYBER(args) => {
-            kyber_handler(args)
+            let result = kyber_handler(args);
+            if let Err(e) = result {
+                println!("{}", e.to_string())
+            }
         }
     }
+
+    Ok(())
 }

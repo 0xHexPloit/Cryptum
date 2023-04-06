@@ -111,8 +111,8 @@ pub struct KyberKEMDecryptArgs {
     pub spec: u16,
 
     /// The path where to save the generated shared key
-    #[structopt(long, default_value="kyber_shared_key.txt")]
-    pub out_shared: PathBuf,
+    #[structopt(long)]
+    pub out_shared: Option<PathBuf>,
 
     /// The size of the shared key (in bytes)
     #[structopt(long, default_value="32")]

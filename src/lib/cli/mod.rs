@@ -1,7 +1,6 @@
 
 use structopt::{StructOpt};
 pub mod kyber;
-mod results;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
