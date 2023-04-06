@@ -2,7 +2,6 @@ use crate::algorithms::byte_array::ByteArray;
 use crate::algorithms::kyber::{KyberKEM512, KyberKEM768, KyberKEM1024, KyberKEM, KyberPKE, KyberCPAPKE512, KyberCPAPKE768, KyberCPAPKE1024, get_random_coin, KYBER_MESSAGE_LENGTH};
 use crate::cli::kyber::{KyberArgs, KyberKEMArgs, KyberKEMDecryptArgs, KyberKEMEncryptArgs, KyberKeyGenArgs, KyberPKEArgs, KyberPKEDecryptArgs, KyberPKEEncryptArgs};
 use crate::CryptumResult;
-use crate::errors::CryptumError;
 use crate::handler::utils::{read_data_from_file, write_data_to_disk};
 
 pub fn get_pke_kyber(spec: u16) -> Box<dyn KyberPKE> {
@@ -38,32 +37,35 @@ pub fn kyber_pke_encrypt(args: KyberPKEEncryptArgs) -> CryptumResult<()> {
 
     let plaintext_raw = read_data_from_file(args.in_plaintext)?;
     let plaintext = ByteArray::from(plaintext_raw.into_bytes());
-    let plaintext_length = plaintext.length();
-
-    // Checking plaintext length
-    if plaintext_length > KYBER_MESSAGE_LENGTH {
-        return Err(CryptumError::MessageLength);
-    }
-
-    let mut message = [0u8; KYBER_MESSAGE_LENGTH];
-    message[0..plaintext_length].copy_from_slice(plaintext.get_bytes());
-
 
     let public_key_raw = read_data_from_file(args.in_pubkey)?;
     let public_key = ByteArray::from_hex(public_key_raw)?;
 
-    let random_coin = get_random_coin();
+    let mut cipher_text_str = String::new();
 
-    let ciphertext = kyber.encrypt(
-        public_key,
-        message.as_slice().into(),
-        random_coin
-    );
-    let ciphertext_str = ciphertext.to_hex();
+    for chunk in plaintext.get_bytes().chunks(KYBER_MESSAGE_LENGTH) {
+        let chunk_length = chunk.len();
+        let mut chunk_vec = chunk.to_vec();
+
+        if chunk_length != KYBER_MESSAGE_LENGTH {
+            chunk_vec.extend(vec![0; KYBER_MESSAGE_LENGTH - chunk_length])
+        }
+
+        let random_coin = get_random_coin();
+
+        let ciphertext = kyber.encrypt(
+            public_key.clone(),
+            chunk_vec.into(),
+            random_coin
+        );
+
+        cipher_text_str.push_str(ciphertext.to_hex().as_str());
+    }
+
     if args.out_ciphertext.is_none() {
-        print!("{}", ciphertext_str);
+        print!("{}", cipher_text_str);
     } else {
-        write_data_to_disk(ciphertext_str, args.out_ciphertext.unwrap())?;
+        write_data_to_disk(cipher_text_str, args.out_ciphertext.unwrap())?;
     }
 
     Ok(())
@@ -71,6 +73,7 @@ pub fn kyber_pke_encrypt(args: KyberPKEEncryptArgs) -> CryptumResult<()> {
 
 pub fn kyber_pke_decrypt(args: KyberPKEDecryptArgs) -> CryptumResult<()> {
     let kyber = get_pke_kyber(args.spec);
+    let ciphertext_length = kyber.get_ciphertext_length();
 
     let ciphertext_raw = read_data_from_file(args.in_ciphertext)?;
     let ciphertext = ByteArray::from_hex(ciphertext_raw)?;
@@ -78,12 +81,24 @@ pub fn kyber_pke_decrypt(args: KyberPKEDecryptArgs) -> CryptumResult<()> {
     let private_key_raw = read_data_from_file(args.in_privkey)?;
     let private_key = ByteArray::from_hex(private_key_raw)?;
 
-    let plaintext = kyber.decrypt(
-        private_key,
-        ciphertext
-    );
-    let plaintext_bytes: Vec<u8> = plaintext.get_bytes().to_vec().iter().map(|&val| val.clone()).filter(|&val| val != 0).collect();
-    let plaintext_str = String::from_utf8_lossy(plaintext_bytes.as_slice()).into();
+    let mut plaintext_str = String::new();
+
+    for chunk in ciphertext.get_bytes().chunks(ciphertext_length) {
+        let chunk_length = chunk.len();
+        let mut chunk_vec = chunk.to_vec();
+
+        if chunk_length != ciphertext_length {
+            chunk_vec.extend(vec![0; ciphertext_length - chunk_length])
+        }
+
+        let plaintext = kyber.decrypt(
+            private_key.clone(),
+            chunk_vec.into()
+        );
+
+        let plaintext_bytes: Vec<u8> = plaintext.get_bytes().to_vec().iter().map(|&val| val.clone()).filter(|&val| val != 0).collect();
+        plaintext_str.push_str(String::from_utf8_lossy(plaintext_bytes.as_slice()).as_ref());
+    }
 
     if args.out_plaintext.is_none() {
         println!("{}", plaintext_str)
@@ -172,7 +187,11 @@ pub fn kyber_kem_decrypt(args: KyberKEMDecryptArgs) -> CryptumResult<()> {
         args.key_size
     );
 
-    write_data_to_disk(shared_key.to_hex(), args.out_shared)?;
+    if args.out_shared.is_none() {
+        println!("{}", shared_key.to_hex())
+    } else {
+        write_data_to_disk(shared_key.to_hex(), args.out_shared.unwrap())?;
+    }
     Ok(())
 }
 

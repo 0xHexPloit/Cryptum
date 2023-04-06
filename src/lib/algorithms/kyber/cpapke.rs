@@ -16,6 +16,7 @@ pub trait KyberPKE {
     fn keygen(&self, seed: ByteArray) -> (ByteArray, ByteArray);
     fn encrypt(&self, public_key: ByteArray, message: ByteArray, random_coin: ByteArray) -> ByteArray;
     fn decrypt(&self, private_key: ByteArray, ciphertext: ByteArray) -> ByteArray;
+    fn get_ciphertext_length(&self) -> usize;
 }
 
 
@@ -238,10 +239,6 @@ impl <const N: usize> KyberCPAPKECore<N> {
     pub fn get_private_key_length(&self) -> usize {
         (12 * self.k as usize * KYBER_N_VALUE) / 8
     }
-
-    pub fn get_ciphertext_length(&self) -> usize {
-        (self.d_u * self.k as usize * KYBER_N_VALUE) / 8 + (self.d_v * KYBER_N_VALUE) / 8
-    }
 }
 
 impl <const V: usize>KyberPKE for KyberCPAPKECore<V> {
@@ -390,6 +387,10 @@ impl <const V: usize>KyberPKE for KyberCPAPKECore<V> {
         poly = v.sub(&poly);
 
         poly.compress(1).encode(1)
+    }
+
+    fn get_ciphertext_length(&self) -> usize {
+        (self.d_u * self.k as usize * KYBER_N_VALUE) / 8 + (self.d_v * KYBER_N_VALUE) / 8
     }
 }
 
